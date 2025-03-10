@@ -1,4 +1,4 @@
-from sida.extensions.resources.databases import SqliteResource
+from sidas.extensions.resources.databases import SqliteResource
 
 
 def test_resource() -> None:

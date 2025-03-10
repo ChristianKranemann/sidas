@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from sida.core import AssetStatus, MetaBase
+from sidas.core import AssetStatus, MetaBase
 
 
 class TestAssetStatus:

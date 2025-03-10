@@ -2,14 +2,14 @@ from unittest.mock import patch
 
 import pytest
 
-from sida.core import (
+from sidas.core import (
     AssetId,
     AssetStatus,
     MetaBase,
     MetaDataNotStoredException,
 )
-from sida.extensions.assets.simple_asset import SimpleAsset
-from sida.extensions.meta_persisters.simple import InMemoryMetaPersister
+from sidas.extensions.assets.simple_asset import SimpleAsset
+from sidas.extensions.meta_persisters.simple import InMemoryMetaPersister
 
 
 class TestInMemoryMetaPersister:

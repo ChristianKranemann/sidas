@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 
 # Assuming the module is named asset_system
-from sida.core import (
+from sidas.core import (
     AssetId,
     AssetNotRegisteredInDataPersister,
     AssetNotRegisteredInMetaPersister,

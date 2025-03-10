@@ -1,5 +1,5 @@
-from sida.core import AssetId
-from sida.extensions.data_persisters import InMemoryDataPersister
+from sidas.core import AssetId
+from sidas.extensions.data_persisters import InMemoryDataPersister
 
 
 def test_store_and_retrieve() -> None:

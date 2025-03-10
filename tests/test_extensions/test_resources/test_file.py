@@ -1,7 +1,7 @@
 from pathlib import Path, PurePath
 from typing import Any, ClassVar
 
-from sida.extensions.resources.file import LocalFile
+from sidas.extensions.resources.file import LocalFile
 
 
 def test_local_file_full_path() -> None:

@@ -2,11 +2,11 @@ import os
 
 import pytest
 
-from sida.core import AssetId, MetaBase
-from sida.extensions.meta_persisters.database import (
+from sidas.core import AssetId, MetaBase
+from sidas.extensions.meta_persisters.database import (
     SqlMetaPersistert,
 )
-from sida.extensions.resources.databases import SqliteResource
+from sidas.extensions.resources.databases import SqliteResource
 
 
 class A(MetaBase): ...

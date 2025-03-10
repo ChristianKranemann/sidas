@@ -1,9 +1,9 @@
-from sida.extensions.assets.downstream_asset import (
+from sidas.extensions.assets.downstream_asset import (
     DownstreamAsset,
     DownstreamAssetMetadata,
     DownstreamAssetRefreshMethod,
 )
-from sida.extensions.meta_persisters import InMemoryMetaPersister
+from sidas.extensions.meta_persisters import InMemoryMetaPersister
 
 
 class A(DownstreamAsset[int]):

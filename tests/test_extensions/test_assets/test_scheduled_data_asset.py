@@ -1,4 +1,4 @@
-from sida.extensions.assets.scheduled_asset import (
+from sidas.extensions.assets.scheduled_asset import (
     ScheduledAsset,
     ScheduledAssetMetadata,
 )

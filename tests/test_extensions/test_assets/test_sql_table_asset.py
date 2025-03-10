@@ -9,12 +9,12 @@ from sqlalchemy import (
     select,
 )
 
-from sida.extensions.assets.sql_asset import SqlSimpleAsset, SqlTableAsset
-from sida.extensions.data_persisters.sql_asset_persister import (
+from sidas.extensions.assets.sql_asset import SqlSimpleAsset, SqlTableAsset
+from sidas.extensions.data_persisters.sql_asset_persister import (
     SqlAssetPersister,
 )
-from sida.extensions.meta_persisters import InMemoryMetaPersister
-from sida.extensions.resources.databases import SqliteResource
+from sidas.extensions.meta_persisters import InMemoryMetaPersister
+from sidas.extensions.resources.databases import SqliteResource
 
 metadata = MetaData()
 

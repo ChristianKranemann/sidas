@@ -1,6 +1,6 @@
-from sida.extensions.data_persisters.jsonfile import JsonFileDataPersister, DictListHandler
-from sida.extensions.resources.file import InMemoryFile
-from sida.core import BaseAsset, MetaBase
+from sidas.extensions.data_persisters.jsonfile import JsonFileDataPersister, DictListHandler
+from sidas.extensions.resources.file import InMemoryFile
+from sidas.core import BaseAsset, MetaBase
 
 class DictListAsset(BaseAsset[MetaBase, list[dict]]):  ...
     
