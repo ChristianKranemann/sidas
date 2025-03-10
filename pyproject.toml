@@ -1,0 +1,46 @@
+[project]
+name = "sida"
+version = "0.1.1"
+description = ""
+authors = [
+    {name = "Christian Kranemann", email = "christian.kranemann@al-ko.com"},
+]
+dependencies = [
+    "boto3>=1.36.11",
+    "click>=8.1.8",
+    "croniter>=1.4.1",
+    "dataclasses-json>=0.6.7",
+    "numpy>=2.2.3",
+    "pandas>=2.2.3",
+    "pydantic>=2.10.6",
+    "smart-open[s3]>=7.1.0",
+    "sqlmodel>=0.0.22",
+]
+requires-python = ">=3.12"
+readme = "README.md"
+license = {text = "MIT"}
+
+[project.scripts]
+sida = "sida.cli:cli"
+
+[project.optional-dependencies] 
+test = [
+    "pytest>=7.4.2",
+    "pytest-cov>=4.1.0",
+]
+
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.4",
+    "types-boto3-custom",
+]
+
+[tool.uv.sources]
+types-boto3-custom = { path = "vendored/types_boto3_custom-1.36.11-py3-none-any.whl" }
+
+[tool.ruff]
