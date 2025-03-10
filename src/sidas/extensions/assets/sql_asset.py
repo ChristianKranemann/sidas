@@ -5,7 +5,7 @@ from typing import ClassVar, Type
 from sqlalchemy import Column, DDLElement, Executable, MetaData, Selectable, Table
 from sqlalchemy.ext import compiler
 
-from sida.core import AssetId
+from sidas.core import AssetId
 
 from .downstream_asset import DownstreamAsset
 from .scheduled_asset import ScheduledAsset

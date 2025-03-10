@@ -1,5 +1,4 @@
 version = 1
-revision = 1
 requires-python = ">=3.12"
 
 [[package]]
@@ -414,7 +413,7 @@ wheels = [
 ]
 
 [[package]]
-name = "sida"
+name = "sidas"
 version = "0.1.1"
 source = { editable = "." }
 dependencies = [
@@ -455,7 +454,6 @@ requires-dist = [
     { name = "smart-open", extras = ["s3"], specifier = ">=7.1.0" },
     { name = "sqlmodel", specifier = ">=0.0.22" },
 ]
-provides-extras = ["test"]
 
 [package.metadata.requires-dev]
 dev = [

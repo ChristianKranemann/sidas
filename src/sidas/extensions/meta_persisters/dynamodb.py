@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Type
 
-from sida.core import DefaultAsset, MetaDataNotStoredException, MetaPersister
+from sidas.core import DefaultAsset, MetaDataNotStoredException, MetaPersister
 
 if TYPE_CHECKING:
     from types_boto3_dynamodb.service_resource import Table

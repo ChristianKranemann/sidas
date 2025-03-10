@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from sida.core import DataPersister, DefaultAsset
+from sidas.core import DataPersister, DefaultAsset
 
 from ..assets.sql_asset import SqlAsset, SqlAssetType, SqlTableAsset
 from ..resources.databases import DatabaseResource

@@ -4,9 +4,9 @@
 import random
 import statistics
 
-from sida.extensions import REGISTER_ASSETS_IN_MEMORY
-from sida.extensions.assets import DownstreamAsset, ScheduledAsset
-from sida.extensions.coordinators import SimpleCoordinator
+from sidas.extensions import REGISTER_ASSETS_IN_MEMORY
+from sidas.extensions.assets import DownstreamAsset, ScheduledAsset
+from sidas.extensions.coordinators import SimpleCoordinator
 
 
 class Numbers(ScheduledAsset[list[float]]):
