@@ -77,3 +77,13 @@ class S3File(FileResource):
 
         url = f"s3://{self.bucket}/{path}"
         yield open(url, mode, transport_params={"client": session.client("s3")})
+
+    def exists(self, path: PurePath) -> bool:
+        session = self.account.session()
+        url = f"s3://{self.bucket}/{path}"
+
+        try:
+            with open(url, transport_params={"client": session.client("s3")}):
+                return True
+        except ValueError:
+            return False

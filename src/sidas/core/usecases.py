@@ -15,13 +15,15 @@ class CoordinateUsecase:
         self.coordinator = coordinator
 
     def __call__(self) -> None:
-        logging.info("checking assets ...")
+        for asset in self.coordinator.assets:
+            logging.info("hydrating asset %s", asset.asset_id())
+            asset.hydrate()
 
         for asset in self.coordinator.assets:
             logging.info("checking asset %s", asset.asset_id())
 
-            asset.hydrate()
             if not asset.can_materialize():
+                logging.info("asset %s cant materialize", asset.asset_id())
                 continue
 
             logging.info("materializing asset %s", asset.asset_id())

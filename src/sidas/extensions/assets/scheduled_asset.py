@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from typing import Type
 
 from croniter import croniter
 
-from ...core import AssetData, BaseAsset, MetaBase
+from ...core import AssetData, AssetStatus, BaseAsset, MetaBase
 
 
 class ScheduledAssetMetadata(MetaBase):
@@ -77,10 +78,17 @@ class ScheduledAsset(BaseAsset[ScheduledAssetMetadata, AssetData]):
 
         # skip if asset is materializing
         if self.meta.in_progress():
+            logging.info("can't materialize: materialization in progress")
             return False
+
+        # if the asset has not materialized, do so now:
+        if self.meta.status != AssetStatus.PERSISTED:
+            logging.info("asset not materialized yet, can materialize")
+            return True
 
         # skip if next schedule is in the future
         if datetime.now() < self.meta.next_schedule:
+            logging.info("can't materialize: materialization not yet scheduled")
             return False
 
         cron_iterator = croniter(self.cron_expression)

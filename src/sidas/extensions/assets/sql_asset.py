@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import ClassVar, Type
+from typing import Any, ClassVar, Type
 
 from sqlalchemy import Column, DDLElement, Executable, MetaData, Selectable, Table
 from sqlalchemy.ext import compiler
@@ -26,7 +26,7 @@ class SqlSimpleAsset(SimpleAsset[Table]):
     table_meta: ClassVar[MetaData] = META
 
     overwrite_table_name: str
-    columns: list[Column]
+    columns: list[Column[Any]]
     executable: Executable
 
     def table_name(self) -> str:
@@ -63,7 +63,7 @@ class SqlScheduledAsset(ScheduledAsset[Table]):
     table_meta: ClassVar[MetaData] = META
 
     overwrite_table_name: str
-    columns: list[Column]
+    columns: list[Column[Any]]
     executable: Executable
 
     def table_name(self) -> str:
@@ -97,7 +97,7 @@ class SqlDownstreamAsset(DownstreamAsset[Table]):
     table_meta: ClassVar[MetaData] = META
 
     overwrite_table_name: str
-    columns: list[Column]
+    columns: list[Column[Any]]
     executable: Executable
 
     def table_name(self) -> str:
@@ -177,13 +177,13 @@ SqlAssetType = (
 
 
 class CreateTableAs(DDLElement):
-    def __init__(self, name, selectable):
+    def __init__(self, name: str, selectable: Selectable):
         self.name = name
         self.selectable = selectable
 
 
 @compiler.compiles(CreateTableAs)
-def _create_table_as_defaullt(element, compiler, **kw):
+def _create_table_as_defaullt(element: CreateTableAs, compiler: Any, **kw: Any):
     return "CREATE TABLE %s AS (%s)" % (
         element.name,
         compiler.sql_compiler.process(element.selectable, literal_binds=True),
@@ -191,7 +191,7 @@ def _create_table_as_defaullt(element, compiler, **kw):
 
 
 @compiler.compiles(CreateTableAs, "sqlite")
-def _create_table_as_sqlite(element, compiler, **kw):
+def _create_table_as_sqlite(element: CreateTableAs, compiler: Any, **kw: Any):
     return "CREATE TABLE %s AS %s" % (
         element.name,
         compiler.sql_compiler.process(element.selectable, literal_binds=True),

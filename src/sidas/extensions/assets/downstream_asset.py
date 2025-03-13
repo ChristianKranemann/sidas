@@ -121,6 +121,7 @@ class DownstreamAsset(BaseAsset[DownstreamAssetMetadata, AssetData]):
 
         # skip if asset is materializing
         if self.meta.in_progress():
+            logging.info("can't materialize: materialization in progress")
             return False
 
         # skip if not all upstreams have materialized
@@ -134,6 +135,7 @@ class DownstreamAsset(BaseAsset[DownstreamAssetMetadata, AssetData]):
 
         # if the asset has not materialized, do so now:
         if self.meta.status != AssetStatus.PERSISTED:
+            logging.info("asset not materialized yet, can materialize")
             return True
 
         # else check if the upstream materialization dates are new enough
@@ -146,9 +148,17 @@ class DownstreamAsset(BaseAsset[DownstreamAssetMetadata, AssetData]):
         is_newer = [this_last_started < t for t in other_last_materialized]
 
         if self.refresh_method == DownstreamAssetRefreshMethod.ALL_UPSTREAM_REFRESHED:
-            return all(is_newer)
+            if not all(is_newer):
+                logging.info(
+                    "can't materialize: at least one uppstream asset has not refreshed"
+                )
+                return False
+            return True
 
         if self.refresh_method == DownstreamAssetRefreshMethod.ANY_UPSTREAM_REFRESHED:
-            return any(is_newer)
+            if not any(is_newer):
+                logging.info("can't materialize: no upstream asets have refreshed")
+                return False
+            return True
 
         return True

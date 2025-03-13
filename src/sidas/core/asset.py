@@ -10,7 +10,7 @@ from .exceptions import (
     AssetNotRegisteredInMetaPersister,
     MetaDataNotStoredException,
 )
-from .meta import AssetMeta, AssetStatus
+from .meta import AssetMeta, AssetStatus, MetaBase
 
 AssetData = TypeVar("AssetData")
 
@@ -253,30 +253,30 @@ class BaseAsset(Generic[AssetMeta, AssetData], ABC):
 
     def validate(self) -> None:
         logging.info("validating asset %s", self.asset_id())
-        if type(self).transformation == BaseAsset.transformation:
+        if type(self).transformation == DefaultAsset.transformation:
             raise Exception(
                 f"Asset {self.asset_id()} needs to implement transformation."
             )
 
-        if type(self).set_default_meta == BaseAsset.set_default_meta:
+        if type(self).set_default_meta == DefaultAsset.set_default_meta:
             raise Exception(
                 f"Asset {self.asset_id()} needs to implement set_default_meta."
             )
 
-        if type(self).execute_transformation == BaseAsset.execute_transformation:
+        if type(self).execute_transformation == DefaultAsset.execute_transformation:
             raise Exception(
                 f"Asset {self.asset_id()} needs to implement execute_transformation."
             )
 
-        if type(self).can_materialize == BaseAsset.can_materialize:
+        if type(self).can_materialize == DefaultAsset.can_materialize:
             raise Exception(
                 f"Asset {self.asset_id()}needs to implement can_materialize."
             )
 
-        if type(self).save_meta == BaseAsset.save_meta:
+        if type(self).save_meta == DefaultAsset.save_meta:
             raise Exception(f"Asset {self.asset_id()} has no meta persister.")
 
-        if type(self).save_data == BaseAsset.save_data:
+        if type(self).save_data == DefaultAsset.save_data:
             raise Exception(f"Asset {self.asset_id()} has no data persister.")
 
     def hydrate(self) -> None:
@@ -436,5 +436,5 @@ class BaseAsset(Generic[AssetMeta, AssetData], ABC):
 
 
 # Type aliases for convenience
-DefaultAsset = BaseAsset[Any, Any]
+DefaultAsset = BaseAsset[MetaBase, Any]
 HasAssetId = Type[DefaultAsset] | DefaultAsset

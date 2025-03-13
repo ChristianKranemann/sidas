@@ -13,10 +13,6 @@ class DatabaseResource(Protocol):
 
 
 class SqliteResource(DatabaseResource):
-    """ """
-
-    path: str
-
     def __init__(self, path: str) -> None:
         self.path = path
 
@@ -32,26 +28,29 @@ class SqliteResource(DatabaseResource):
 
 
 class SqlServerResource(DatabaseResource):
-    host: str
-    user: str
-    password: str
-    dbname: str
-    port: int
-
     def __init__(
-        self, host: str, user: str, password: str, dbname: str, port: int = 1433
+        self,
+        host: str,
+        user: str,
+        password: str,
+        dbname: str,
+        port: int = 1433,
+        driver: str = "mssql+pyodbc",
+        parameter: str = "?driver=ODBC+Driver+18+for+SQL+Server",
     ) -> None:
         self.host = host
         self.user = user
         self.password = password
         self.dbname = dbname
         self.port = port
+        self.driver = driver
+        self.parameter = parameter
 
     def get_engine(self) -> Engine:
         engine = create_engine(
-            f"mssql+pyodbc://{self.user}:{self.password}@{self.host}:{self.port}/{self.dbname}?driver=ODBC+Driver+17+for+SQL+Server"
-            # f"mssql+pymssql://{self.user}:{self.password}@{self.host}/{self.dbname}/?charset=utf8"
+            f"{self.driver}://{self.user}:{self.password}@{self.host}:{self.port}/{self.dbname}{self.parameter}"
         )
+
         return engine
 
     @contextmanager
@@ -62,25 +61,27 @@ class SqlServerResource(DatabaseResource):
 
 
 class PostgresqlResource(DatabaseResource):
-    host: str
-    user: str
-    password: str
-    dbname: str
-    port: int
-
     def __init__(
-        self, host: str, user: str, password: str, dbname: str, port: int = 5432
+        self,
+        host: str,
+        user: str,
+        password: str,
+        dbname: str,
+        port: int = 5432,
+        driver: str = "postgresql+psycopg2",
+        parameter: str = "",
     ) -> None:
         self.host = host
         self.user = user
         self.password = password
         self.dbname = dbname
         self.port = port
+        self.driver = driver
+        self.parameter = parameter
 
     def get_engine(self) -> Engine:
         engine = create_engine(
-            f"postgresql+psycopg2://{self.user}:{self.password}@{self.host}:{self.port}/{self.dbname}"
-            # f"mssql+pyodbc://{self.user}:{self.password}@{self.host}/{self.dbname}"
+            f"{self.driver}://{self.user}:{self.password}@{self.host}:{self.port}/{self.dbname}{self.parameter}"
         )
         return engine
 

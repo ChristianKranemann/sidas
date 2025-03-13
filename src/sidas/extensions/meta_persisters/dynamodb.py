@@ -11,6 +11,8 @@ else:
 
 from ..resources.aws import AwsAccount
 
+PRIMARY_ID_KEY = "asset_id"
+
 
 class DynamoDbMetadataStore(MetaPersister):
     def __init__(self, account: AwsAccount, table_name: str):
@@ -28,16 +30,19 @@ class DynamoDbMetadataStore(MetaPersister):
 
     def save(self, asset: DefaultAsset) -> None:
         asset_id = str(asset.asset_id())
-        item = asset.meta.to_dict()
-        item["asset_id"] = asset_id
+        data = asset.meta.to_json()
+        item = {PRIMARY_ID_KEY: asset_id, "data": data}
         self.get_table().put_item(Item=item)
 
     def load(self, asset: DefaultAsset) -> None:
         asset_id = str(asset.asset_id())
-        response = self.get_table().get_item(Key={"asset_id": asset_id})
-        if "item" not in response:
+        response = self.get_table().get_item(Key={PRIMARY_ID_KEY: asset_id})
+        if "Item" not in response:
             raise MetaDataNotStoredException()
-        meta = asset.meta.from_dict(response["Item"])
+        item = response["Item"]
+        data: str = item["data"]  # type: ignore
+
+        meta = asset.meta_type().from_json(data)
         asset.meta = meta
 
     def heartbeat(self) -> None:
