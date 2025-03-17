@@ -19,10 +19,11 @@ DataclassAsset = BaseAsset[Any, list[Any]]
 class DataclassPersisterFileResource:
     file: FileResource
     format: Literal["csv", "parquet", "json", "ndjson"] = "ndjson"
+    strict: bool = False
 
     def save(self, asset: DataclassAsset) -> None:
         path = asset.asset_id().as_path(suffix=self.format)
-        data = pl.DataFrame(asset.data)
+        data = pl.DataFrame(asset.data, strict=self.strict)
 
         match self.format:
             case "csv":
@@ -69,10 +70,11 @@ class DataclassPersisterFileResource:
 class DataclassPersisterDBResource:
     db: DatabaseResource
     if_table_exists: Literal["append", "replace", "fail"] = "replace"
+    strict: bool = False
 
     def save(self, asset: DataclassAsset) -> None:
         name = asset.asset_id().as_path().name
-        data = pl.DataFrame(asset.data)
+        data = pl.DataFrame(asset.data, strict=self.strict)
 
         with self.db.get_connection() as con:
             data.write_database(name, con, if_table_exists=self.if_table_exists)
@@ -98,7 +100,9 @@ class DataclassPersister(DataPersister):
     and directly set data for assets, using an in-memory dictionary to store the data.
     """
 
-    def __init__(self, resource: DataclassPersisterResource) -> None:
+    def __init__(
+        self, resource: DataclassPersisterResource, strict: bool = False
+    ) -> None:
         self.resource = resource
 
     def register(

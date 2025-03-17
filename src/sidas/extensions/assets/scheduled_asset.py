@@ -82,8 +82,11 @@ class ScheduledAsset(BaseAsset[ScheduledAssetMetadata, AssetData]):
             return False
 
         # if the asset has not materialized, do so now:
+        # update the next schedule
         if self.meta.status != AssetStatus.PERSISTED:
             logging.info("asset not materialized yet, can materialize")
+            self.meta.next_schedule = cron_iterator.next(datetime)
+            self.save_meta()
             return True
 
         # skip if next schedule is in the future
@@ -91,7 +94,6 @@ class ScheduledAsset(BaseAsset[ScheduledAssetMetadata, AssetData]):
             logging.info("can't materialize: materialization not yet scheduled")
             return False
 
-        cron_iterator = croniter(self.cron_expression)
         self.meta.next_schedule = cron_iterator.next(datetime)
         self.save_meta()
         return True

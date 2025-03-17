@@ -1,6 +1,6 @@
 [project]
 name = "sidas"
-version = "0.1.10"
+version = "0.1.11"
 description = ""
 authors = [
     {name = "Christian Kranemann", email = "christian.kranemann@al-ko.com"},
@@ -23,7 +23,7 @@ readme = "README.md"
 license = {text = "MIT"}
 
 [project.scripts]
-sida = "sidas.cli:cli"
+sidas = "sidas.cli:cli"
 
 [project.optional-dependencies] 
 test = [
