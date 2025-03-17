@@ -6,12 +6,11 @@ import polars as pl
 from ...core import (
     BaseAsset,
     DataPersister,
-    MetaBase,
 )
 from ..resources.databases import DatabaseResource
 from ..resources.file import FileResource
 
-PolarsAsset = BaseAsset[MetaBase, pl.DataFrame]
+PolarsAsset = BaseAsset[Any, pl.DataFrame]
 
 
 @dataclass

@@ -6,12 +6,11 @@ import pandas as pd
 from ...core import (
     BaseAsset,
     DataPersister,
-    MetaBase,
 )
 from ..resources.databases import DatabaseResource
 from ..resources.file import FileResource
 
-PandasAsset = BaseAsset[MetaBase, pd.DataFrame]
+PandasAsset = BaseAsset[Any, pd.DataFrame]
 
 
 @dataclass

@@ -8,11 +8,11 @@ if TYPE_CHECKING:
 else:
     DataclassInstance = object
 
-from ...core import BaseAsset, DataPersister, MetaBase
+from ...core import BaseAsset, DataPersister
 from ..resources.databases import DatabaseResource
 from ..resources.file import FileResource
 
-DataclassAsset = BaseAsset[MetaBase, list[Any]]
+DataclassAsset = BaseAsset[Any, list[Any]]
 
 
 @dataclass

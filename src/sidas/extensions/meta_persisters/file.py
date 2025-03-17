@@ -22,7 +22,7 @@ class FileMetaPersister(MetaPersister):
         path = asset.asset_id().as_path()
         with self.folder.open(path, mode="w") as f:
             data = asset.meta.to_json()
-            n = f.write(data)
+            f.write(data)
 
     def load(self, asset: DefaultAsset) -> None:
         path = asset.asset_id().as_path()

@@ -7,12 +7,11 @@ import polars as pl
 from ...core import (
     BaseAsset,
     DataPersister,
-    MetaBase,
 )
 from ..resources.databases import DatabaseResource
 from ..resources.file import FileResource
 
-DuckDbAsset = BaseAsset[MetaBase, duckdb.DuckDBPyRelation]
+DuckDbAsset = BaseAsset[Any, duckdb.DuckDBPyRelation]
 
 
 @dataclass
