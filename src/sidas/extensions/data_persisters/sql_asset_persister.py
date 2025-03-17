@@ -8,13 +8,13 @@ from ..assets.sql_asset import SqlAsset, SqlAssetType, SqlTableAsset
 from ..resources.databases import DatabaseResource
 
 
-class SqlAssetPersisterInvalidAsset(Exception):
+class SqlPersisterInvalidAsset(Exception):
     def __init__(self, asset: DefaultAsset) -> None:
         message = f"Asset {asset.asset_id()} is not of type SqlAsset"
         super().__init__(message)
 
 
-class SqlAssetPersister(DataPersister):
+class SqlPersister(DataPersister):
     def __init__(self, db: DatabaseResource) -> None:
         self._db = db
         super().__init__()
@@ -29,7 +29,7 @@ class SqlAssetPersister(DataPersister):
 
     def load(self, asset: DefaultAsset) -> None:
         if not isinstance(asset, SqlAsset):
-            raise SqlAssetPersisterInvalidAsset(asset)
+            raise SqlPersisterInvalidAsset(asset)
 
         if isinstance(asset, SqlTableAsset):
             asset.data = asset.table_meta.tables[asset.table_name()]
@@ -39,7 +39,7 @@ class SqlAssetPersister(DataPersister):
 
     def save(self, asset: DefaultAsset) -> None:
         if not isinstance(asset, SqlAsset):
-            raise SqlAssetPersisterInvalidAsset(asset)
+            raise SqlPersisterInvalidAsset(asset)
 
         # drop the table if it exists
         asset.data.drop(self._db.get_engine(), checkfirst=True)

@@ -10,7 +10,6 @@ from ..core import (
     CoordinateUsecase,
     Coordinator,
     MaterializeUsecase,
-    MaterializeUsecaseInput,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -44,8 +43,7 @@ def materialize(asset: str) -> None:
     coordinator = Coordinator.load_coordinator()
     asset_id = AssetId(asset)
     usecase = MaterializeUsecase(coordinator)
-    data = MaterializeUsecaseInput(asset_id)
-    usecase(data)
+    usecase(asset_id)
 
 
 if __name__ == "__main__":

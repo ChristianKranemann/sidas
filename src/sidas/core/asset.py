@@ -29,14 +29,21 @@ class AssetId(str):
         PurePath('my/asset/id')
     """
 
-    def as_path(self) -> PurePath:
+    def as_path(self, suffix: str | None = None) -> PurePath:
         """
         Convert the dot-separated asset ID into a filesystem path.
 
         Returns:
             PurePath: A path object where each component is a part of the dot-separated ID
         """
-        return PurePath(*self.split("."))
+
+        path = PurePath(*self.split("."))
+        if suffix is not None:
+            if suffix.startswith("."):
+                path = path.with_suffix(suffix)
+            else:
+                path = path.with_suffix("." + suffix)
+        return path
 
 
 class DataPersister(ABC):
@@ -201,7 +208,7 @@ class BaseAsset(Generic[AssetMeta, AssetData], ABC):
 
     asset_identifier: ClassVar[AssetId] | None = None
     meta: AssetMeta
-    data: Any
+    data: AssetData
     # transformation: Callable[..., Any]
 
     @classmethod
@@ -437,4 +444,3 @@ class BaseAsset(Generic[AssetMeta, AssetData], ABC):
 
 # Type aliases for convenience
 DefaultAsset = BaseAsset[MetaBase, Any]
-HasAssetId = Type[DefaultAsset] | DefaultAsset

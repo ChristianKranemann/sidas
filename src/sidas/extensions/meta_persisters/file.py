@@ -21,7 +21,8 @@ class FileMetaPersister(MetaPersister):
     def save(self, asset: DefaultAsset) -> None:
         path = asset.asset_id().as_path()
         with self.folder.open(path, mode="w") as f:
-            f.write(asset.meta.to_json())
+            data = asset.meta.to_json()
+            n = f.write(data)
 
     def load(self, asset: DefaultAsset) -> None:
         path = asset.asset_id().as_path()
@@ -29,7 +30,7 @@ class FileMetaPersister(MetaPersister):
             raise MetaDataNotStoredException()
 
         with self.folder.open(path, mode="r") as f:
-            data = f.readline()
+            data = f.read()
             meta = asset.meta_type().from_json(data)
             asset.meta = meta
 

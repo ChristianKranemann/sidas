@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
 
 from .asset import AssetId
 from .coordinator import Coordinator
@@ -31,16 +30,11 @@ class CoordinateUsecase:
             self.coordinator.trigger_materialization(asset)
 
 
-@dataclass
-class MaterializeUsecaseInput:
-    asset_id: AssetId
-
-
 class MaterializeUsecase:
     def __init__(self, coordinator: Coordinator) -> None:
         self.coordinator = coordinator
 
-    def __call__(self, data: MaterializeUsecaseInput) -> None:
-        asset = self.coordinator.asset(data.asset_id)
+    def __call__(self, asset_id: AssetId) -> None:
+        asset = self.coordinator.asset(asset_id)
         asset.hydrate()
         asset.materialize()

@@ -4,7 +4,6 @@ from .asset import (
     BaseAsset,
     DataPersister,
     DefaultAsset,
-    HasAssetId,
     MetaPersister,
 )
 from .config import SIDA_COORDINATOR_MODULES_ENV_KEY
@@ -16,7 +15,7 @@ from .exceptions import (
     MetaDataNotStoredException,
 )
 from .meta import AssetMeta, AssetStatus, MetaBase
-from .usecases import CoordinateUsecase, MaterializeUsecase, MaterializeUsecaseInput
+from .usecases import CoordinateUsecase, MaterializeUsecase
 
 __all__ = [
     "BaseAsset",
@@ -27,16 +26,13 @@ __all__ = [
     "Coordinator",
     "MetaPersister",
     "AssetNotFoundException",
-    "MetaDataNotStoredException",
     "AssetStatus",
     "MetaBase",
     "AssetMeta",
     "CoordinateUsecase",
     "MaterializeUsecase",
-    "MaterializeUsecaseInput",
     "SIDA_COORDINATOR_MODULES_ENV_KEY",
     "MetaDataNotStoredException",
-    "HasAssetId",
     "AssetNotRegisteredInDataPersister",
     "AssetNotRegisteredInMetaPersister",
 ]

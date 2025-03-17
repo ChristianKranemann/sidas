@@ -17,8 +17,8 @@
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.codeActionsOnSave": {
-      "source.fixAll": "always",
-      "source.organizeImports": "always"
+      "source.fixAll": "explicit",
+      "source.organizeImports": "explicit"
     },
   },
   "files.exclude": {
@@ -34,5 +34,6 @@
   "python.analysis.typeCheckingMode":"standard",
   "python.analysis.exclude": [".venv"],
   "python.analysis.ignore": [".venv"],
+  "ruff.nativeServer": "on"
 
 }

@@ -9,7 +9,6 @@ from ....core import (
     Coordinator,
     DefaultHasMaterializerProtocol,
     MaterializeUsecase,
-    MaterializeUsecaseInput,
 )
 from .config import (
     LAMBDA_COORDINATOR_LAMBDA_ARN,
@@ -42,5 +41,5 @@ def lambda_coordinator_materialization_handler(event: dict[str, str], context: A
     asset_store = AssetStore()
     asset_store.asset(asset_id).materialize()
     usecase = MaterializeUsecase(asset_store)
-    data = MaterializeUsecaseInput(asset_id)
-    usecase(data)
+
+    usecase(asset_id)

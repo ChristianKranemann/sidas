@@ -35,6 +35,16 @@ class TestAssetId:
         asset_id = AssetId("")
         assert asset_id.as_path() == PurePath()
 
+    def test_as_path_with_suffixconversion(self):
+        asset_id = AssetId("test.asset.id")
+        path = asset_id.as_path(suffix="example")
+        assert isinstance(path, PurePath)
+        assert str(path) == "test/asset/id.example"
+
+        path = asset_id.as_path(suffix=".example")
+        assert isinstance(path, PurePath)
+        assert str(path) == "test/asset/id.example"
+
 
 class MockDataPersister(DataPersister):
     def __init__(self):
@@ -75,12 +85,17 @@ class MetaBasePersister(MetaPersister):
             raise MetaDataNotStoredException("Metadata not found")
 
 
+TEST_ASSET_DATA = "my data"
+
+
 class TestAsset(BaseAsset[MetaBase, str]):
     asset_identifier = AssetId("test.asset")
 
     def __init__(self):
         super().__init__()
-        self.transformation = lambda: "transformed data"
+
+    def transformation(self) -> str:
+        return TEST_ASSET_DATA
 
     def set_default_meta(self) -> MetaBase:
         return MetaBase()
@@ -149,10 +164,10 @@ class TestBaseAsset:
 
         asset.materialize()
 
-        assert asset.data == "transformed data"
+        assert asset.data == TEST_ASSET_DATA
         assert asset.meta.status == AssetStatus.PERSISTED
         assert AssetId("test.asset") in data_persister.saved_data
-        assert data_persister.saved_data[AssetId("test.asset")] == "transformed data"
+        assert data_persister.saved_data[AssetId("test.asset")] == TEST_ASSET_DATA
 
     @patch("logging.error")
     def test_materialize_transformation_failure(self, mock_log_error):
@@ -177,7 +192,10 @@ class TestBaseAsset:
 
         assert asset.meta.status == AssetStatus.MATERIALIZING_FAILED
         assert mock_log_error.called
-        assert "materialize failed" in mock_log_error.call_args[0][0]
+        assert (
+            "failed to materialize asset test.asset: Transformation error"
+            in mock_log_error.call_args[0][0]
+        )
 
     @patch("logging.error")
     def test_materialize_persistence_failure(self, mock_log_error):
@@ -202,10 +220,13 @@ class TestBaseAsset:
 
         asset.materialize()
 
-        assert asset.data == "transformed data"
+        assert asset.data == TEST_ASSET_DATA
         assert asset.meta.status == AssetStatus.PERSISTING_FAILED
         assert mock_log_error.called
-        assert "materialize failed" in mock_log_error.call_args[0][0]
+        assert (
+            "failed to persist asset test.asset: Save error"
+            in mock_log_error.call_args[0][0]
+        )
 
 
 class TestDataPersister:

@@ -1,18 +1,27 @@
 from pathlib import Path, PurePath
 from typing import Any, ClassVar
 
-from sidas.extensions.resources.file import LocalFile
+from sidas.extensions.resources.file import InMemoryFile, LocalFile
+
+
+def test_in_memory_file_read_write(tmp_path: Path) -> None:
+    LINE = "some text"
+    file_name = PurePath("test")
+    folder = InMemoryFile()
+
+    with folder.open(file_name, mode="w") as f:
+        f.write(LINE)
+
+    with folder.open(file_name) as f:
+        assert f.readline() == LINE
 
 
 def test_local_file_full_path() -> None:
     path = LocalFile(".").full_path(PurePath("some", "path"))
-    assert path == Path("some", "path.txt")
+    assert path == Path("some", "path")
 
     path = LocalFile("./base").full_path(PurePath("some", "path"))
-    assert path == Path("base", "some", "path.txt")
-
-    path = LocalFile(".", ".json").full_path(PurePath("some", "path"))
-    assert path == Path("some", "path.json")
+    assert path == Path("base", "some", "path")
 
 
 def test_local_file_read_write(tmp_path: Path) -> None:

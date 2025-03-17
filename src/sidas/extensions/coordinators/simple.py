@@ -2,7 +2,7 @@ from typing import Sequence
 
 from ...core.asset import DataPersister, DefaultAsset, MetaPersister
 from ...core.coordinator import Coordinator
-from ...core.usecases import MaterializeUsecase, MaterializeUsecaseInput
+from ...core.usecases import MaterializeUsecase
 
 
 class SimpleCoordinator(Coordinator):
@@ -16,6 +16,7 @@ class SimpleCoordinator(Coordinator):
 
     def trigger_materialization(self, asset: DefaultAsset) -> None:
         usecase = MaterializeUsecase(self)
-        usecase(MaterializeUsecaseInput(asset.asset_id()))
+        asset_id = asset.asset_id()
+        usecase(asset_id)
 
         # subprocess.run(["sida", "materialize", asset_id])
