@@ -71,13 +71,28 @@ class DataclassPersisterDBResource:
     db: DatabaseResource
     if_table_exists: Literal["append", "replace", "fail"] = "replace"
     strict: bool = False
+    batch: int | None = None
 
     def save(self, asset: DataclassAsset) -> None:
         name = asset.asset_id().as_path().name
         data = pl.DataFrame(asset.data, strict=self.strict)
 
+        chunks = [data]
+        if self.batch:
+            chunks = [
+                data[i : i + self.batch] for i in range(0, data.height, self.batch)
+            ]
+
         with self.db.get_connection() as con:
-            data.write_database(name, con, if_table_exists=self.if_table_exists)
+            first_batch = True
+            for chunk in chunks:
+                if first_batch:
+                    chunk.write_database(
+                        name, con, if_table_exists=self.if_table_exists
+                    )
+                    first_batch = False
+                else:
+                    chunk.write_database(name, con, if_table_exists="append")
 
     def load(self, asset: DataclassAsset) -> None:
         name = asset.asset_id().as_path().name

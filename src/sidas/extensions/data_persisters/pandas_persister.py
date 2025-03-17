@@ -63,11 +63,18 @@ class PandasPersisterFileResource:
 class PandasPersisterDBResource:
     db: DatabaseResource
     if_table_exists: Literal["append", "replace", "fail"] = "replace"
+    batch: int | None = None
 
     def save(self, asset: PandasAsset) -> None:
         name = asset.asset_id().as_path().name
         with self.db.get_connection() as con:
-            asset.data.to_sql(name, con, if_exists=self.if_table_exists, index=False)
+            asset.data.to_sql(
+                name,
+                con,
+                if_exists=self.if_table_exists,
+                index=False,
+                chunksize=self.batch,
+            )
 
     def load(self, asset: PandasAsset) -> None:
         name = asset.asset_id().as_path().name

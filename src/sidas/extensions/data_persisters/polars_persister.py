@@ -63,9 +63,28 @@ class PolarsPersisterFileResource:
 class PolarsPersisterDBResource:
     db: DatabaseResource
     if_table_exists: Literal["append", "replace", "fail"] = "replace"
+    batch: int | None = None
 
     def save(self, asset: PolarsAsset) -> None:
         name = asset.asset_id().as_path().name
+        chunks = [asset.data]
+        if self.batch:
+            chunks = [
+                asset.data[i : i + self.batch]
+                for i in range(0, asset.data.height, self.batch)
+            ]
+
+        with self.db.get_connection() as con:
+            first_batch = True
+            for chunk in chunks:
+                if first_batch:
+                    chunk.write_database(
+                        name, con, if_table_exists=self.if_table_exists
+                    )
+                    first_batch = False
+                else:
+                    chunk.write_database(name, con, if_table_exists="append")
+
         with self.db.get_connection() as con:
             asset.data.write_database(name, con, if_table_exists=self.if_table_exists)
 

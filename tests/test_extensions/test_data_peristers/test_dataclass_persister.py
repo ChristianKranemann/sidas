@@ -15,11 +15,17 @@ from sidas.extensions.resources.file import InMemoryFile
 @dataclass
 class TestClass:
     x: int
+    y: int
+    z: int
 
 
 class TestAsset(SimpleAsset[list[TestClass]]):
+    def __init__(self, rows: int = 10) -> None:
+        super().__init__()
+        self.rows = rows
+
     def transformation(self) -> list[TestClass]:
-        return [TestClass(1), TestClass(2)]
+        return [TestClass(i, i, i) for i in range(self.rows)]
 
 
 class TestJsonAsset(SimpleAsset[list[dict]]):
@@ -81,6 +87,31 @@ def test_load_and_save_to_db():
     meta_persister.register(TestAsset)
 
     test_asset = TestAsset()
+    test_asset.hydrate()
+
+    test_asset.materialize()
+    materialized = copy(test_asset.data)
+
+    test_asset.load_data()
+    assert test_asset.data == materialized
+
+    # test if overwriting works
+    test_asset.materialize()
+    test_asset.load_data()
+    assert test_asset.data == materialized
+
+
+def test_load_and_save_to_db_chunks():
+    file = InMemoryFile()
+    db = SqliteResource("test.db")
+    resource = DataclassPersisterDBResource(db, batch=1000)
+    persister = DataclassPersister(resource)
+    persister.register(TestAsset)
+
+    meta_persister = FileMetaPersister(file)
+    meta_persister.register(TestAsset)
+
+    test_asset = TestAsset(rows=3_000)
     test_asset.hydrate()
 
     test_asset.materialize()
