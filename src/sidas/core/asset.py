@@ -10,7 +10,7 @@ from .exceptions import (
     AssetNotRegisteredInMetaPersister,
     MetaDataNotStoredException,
 )
-from .meta import AssetMeta, AssetStatus, MetaBase
+from .meta import AssetMeta, AssetStatus
 
 AssetData = TypeVar("AssetData")
 
@@ -443,4 +443,4 @@ class BaseAsset(Generic[AssetMeta, AssetData], ABC):
 
 
 # Type aliases for convenience
-DefaultAsset = BaseAsset[MetaBase, Any]
+DefaultAsset = BaseAsset[Any, Any]

@@ -22,6 +22,11 @@ class TestAsset(SimpleAsset[list[TestClass]]):
         return [TestClass(1), TestClass(2)]
 
 
+class TestJsonAsset(SimpleAsset[list[dict]]):
+    def transformation(self) -> list[dict]:
+        return [{"a": 1}, {"b": 2}]
+
+
 def test_init():
     file = InMemoryFile()
     resource = DataclassPersisterFileResource(file)
@@ -45,6 +50,24 @@ def test_load_and_save_to_file():
     test_asset.materialize()
 
     test_asset.load_data()
+
+
+def test_load_and_save_json_to_file():
+    file = InMemoryFile()
+    resource = DataclassPersisterFileResource(file)
+    persister = DataclassPersister(resource)
+    persister.register(TestJsonAsset)
+
+    meta_persister = FileMetaPersister(file)
+    meta_persister.register(TestJsonAsset)
+
+    test_asset = TestJsonAsset()
+    test_asset.hydrate()
+
+    test_asset.materialize()
+
+    test_asset.load_data()
+    print(test_asset.data)
 
 
 def test_load_and_save_to_db():
