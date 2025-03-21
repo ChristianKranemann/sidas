@@ -18,14 +18,16 @@ DataclassAsset = BaseAsset[Any, list[Any]]
 @dataclass
 class DataclassPersisterFileResource:
     file: FileResource
-    format: Literal["csv", "parquet", "json", "ndjson"] = "ndjson"
+    file_format: Literal["csv", "parquet", "json", "ndjson"] = "ndjson"
     strict: bool = False
 
+    
     def save(self, asset: DataclassAsset) -> None:
-        path = asset.asset_id().as_path(suffix=self.format)
-        data = pl.DataFrame(asset.data, strict=self.strict)
+        path = asset.asset_id().as_path(suffix=self.file_format)
+        schema = asset.schema if hasattr(asset, "schema") else None
+        data = pl.DataFrame(asset.data, schema=schema, strict=self.strict, orient="row")
 
-        match self.format:
+        match self.file_format:
             case "csv":
                 with self.file.open(path, "w") as f:
                     data.write_csv(f, separator=";")
@@ -43,9 +45,9 @@ class DataclassPersisterFileResource:
                     data.write_ndjson(f)
 
     def load(self, asset: DataclassAsset) -> None:
-        path = asset.asset_id().as_path(suffix=self.format)
+        path = asset.asset_id().as_path(suffix=self.file_format)
 
-        match self.format:
+        match self.file_format:
             case "csv":
                 with self.file.open(path, "r") as f:
                     data = pl.read_csv(f, separator=";")
