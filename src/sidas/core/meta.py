@@ -4,6 +4,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Self, TypeVar
 
+from croniter import croniter
 from pydantic import BaseModel, Field
 
 
@@ -137,6 +138,108 @@ class MetaBase(BaseModel):
         Raises:
             ValidationError: If the JSON data doesn't match the expected schema
         """
+        return cls.model_validate_json(data)
+
+
+class CoordinatorStatus(StrEnum):
+    INITIALIZING = "INITIALIZED"
+    INITIALIZING_ERROR = "INITIALIZING_ERROR"
+    INITIALIZED = "INITIALIZED"
+
+    HYDRATING = "HYDRATING"
+    HYDRATING_ERROR = "HYDRATING_ERROR"
+    HYDRATED = "HYDRATED"
+
+    PROCESSING = "PROCESSING"
+    PROCESSING_ERROR = "PROCESSING_ERROR"
+    PROCESSED = "PROCESSED"
+
+    WAITING = "WAITING"
+
+    TERMINATING = "TERMINATING"
+    TERMINATED = "TERMINATED"
+
+
+class CoordinatorMeta(BaseModel):
+    status: CoordinatorStatus = CoordinatorStatus.INITIALIZING
+    cron_expression: str
+    next_schedule: datetime = Field(default_factory=datetime.now)
+    initializing_started_at: datetime = Field(default_factory=datetime.now)
+    initializing_stoped_at: datetime | None = None
+    hydrating_started_at: datetime | None = None
+    hydrating_stopped_at: datetime | None = None
+    processing_started_at: datetime | None = None
+    processing_stopped_at: datetime | None = None
+    terminating_started_at: datetime | None = None
+    terminating_stopped_at: datetime | None = None
+
+    updated_at: datetime = Field(default_factory=datetime.now)
+    log: list[str] = Field(default_factory=list)
+
+    def update_log(self, message: str) -> Self:
+        self.log.append(message)
+        return self
+
+    def update_status(self, status: CoordinatorStatus) -> Self:
+        timestamp = datetime.now()
+        self.status = status
+        match status:
+            case CoordinatorStatus.INITIALIZING_ERROR:
+                self.initializing_stoped_at = timestamp
+            case CoordinatorStatus.INITIALIZED:
+                self.initializing_stoped_at = timestamp
+
+            case CoordinatorStatus.HYDRATING:
+                self.hydrating_started_at = timestamp
+            case CoordinatorStatus.HYDRATING_ERROR:
+                self.hydrating_stopped_at = timestamp
+            case CoordinatorStatus.HYDRATED:
+                self.hydrating_stopped_at = timestamp
+
+            case CoordinatorStatus.PROCESSING:
+                self.processing_started_at = timestamp
+            case CoordinatorStatus.PROCESSING_ERROR:
+                self.processing_stopped_at = timestamp
+            case CoordinatorStatus.PROCESSED:
+                self.processing_stopped_at = timestamp
+
+            case CoordinatorStatus.WAITING:
+                pass
+
+            case CoordinatorStatus.TERMINATING:
+                self.terminating_started_at = timestamp
+            case CoordinatorStatus.TERMINATED:
+                self.terminating_stopped_at = timestamp
+
+        self.updated_at = timestamp
+        return self
+
+    def update_next_schedule(self) -> Self:
+        self.next_schedule = croniter(self.cron_expression).next(datetime)
+        return self
+
+    def in_progress(self) -> bool:
+        return self.status in (
+            CoordinatorStatus.INITIALIZING,
+            CoordinatorStatus.HYDRATING,
+            CoordinatorStatus.PROCESSING,
+        )
+
+    def has_error(self) -> bool:
+        return self.status in (
+            CoordinatorStatus.INITIALIZING_ERROR,
+            CoordinatorStatus.HYDRATING_ERROR,
+            CoordinatorStatus.PROCESSING_ERROR,
+        )
+
+    def terminate(self) -> None:
+        self.update_status(CoordinatorStatus.TERMINATING)
+
+    def to_json(self) -> str:
+        return self.model_dump_json()
+
+    @classmethod
+    def from_json(cls, data: str) -> Self:
         return cls.model_validate_json(data)
 
 

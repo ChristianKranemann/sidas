@@ -735,7 +735,7 @@ wheels = [
 
 [[package]]
 name = "sidas"
-version = "0.1.7"
+version = "0.1.12"
 source = { editable = "." }
 dependencies = [
     { name = "boto3" },

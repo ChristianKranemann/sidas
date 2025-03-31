@@ -1,3 +1,6 @@
+class CoordinatorNotRegisteredInMetaPersister(Exception): ...
+
+
 class AssetNotRegisteredInMetaPersister(Exception): ...
 
 

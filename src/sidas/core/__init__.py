@@ -14,8 +14,7 @@ from .exceptions import (
     AssetNotRegisteredInMetaPersister,
     MetaDataNotStoredException,
 )
-from .meta import AssetMeta, AssetStatus, MetaBase
-from .usecases import CoordinateUsecase, MaterializeUsecase
+from .meta import AssetMeta, AssetStatus, CoordinatorMeta, CoordinatorStatus, MetaBase
 
 __all__ = [
     "BaseAsset",
@@ -29,8 +28,8 @@ __all__ = [
     "AssetStatus",
     "MetaBase",
     "AssetMeta",
-    "CoordinateUsecase",
-    "MaterializeUsecase",
+    "CoordinatorMeta",
+    "CoordinatorStatus",
     "SIDA_COORDINATOR_MODULES_ENV_KEY",
     "MetaDataNotStoredException",
     "AssetNotRegisteredInDataPersister",

@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
 
 import logging
-import time
 
 import click
 
 from ..core import (
     AssetId,
-    CoordinateUsecase,
     Coordinator,
-    MaterializeUsecase,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -21,29 +18,17 @@ def cli():
 
 
 @cli.command()
-def coordinate() -> None:
-    coordinator = Coordinator.load_coordinator()
-    usecase = CoordinateUsecase(coordinator)
-    usecase()
-
-
-@cli.command()
 def run() -> None:
     coordinator = Coordinator.load_coordinator()
-    coordinator.validate()
-    usecase = CoordinateUsecase(coordinator)
-    while True:
-        usecase()
-        time.sleep(10)
+    coordinator.run()
 
 
 @cli.command()
 @click.argument("asset")
 def materialize(asset: str) -> None:
-    coordinator = Coordinator.load_coordinator()
     asset_id = AssetId(asset)
-    usecase = MaterializeUsecase(coordinator)
-    usecase(asset_id)
+    coordinator = Coordinator.load_coordinator()
+    coordinator.materialize(asset_id)
 
 
 if __name__ == "__main__":

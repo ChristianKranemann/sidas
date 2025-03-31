@@ -21,10 +21,9 @@ class DataclassPersisterFileResource:
     file_format: Literal["csv", "parquet", "json", "ndjson"] = "ndjson"
     strict: bool = False
 
-    
     def save(self, asset: DataclassAsset) -> None:
         path = asset.asset_id().as_path(suffix=self.file_format)
-        schema = asset.schema if hasattr(asset, "schema") else None
+        schema = asset.schema if hasattr(asset, "schema") else None  # type: ignore
         data = pl.DataFrame(asset.data, schema=schema, strict=self.strict, orient="row")
 
         match self.file_format:
