@@ -1,6 +1,6 @@
 [project]
 name = "sidas"
-version = "0.1.12"
+version = "0.2.0"
 description = ""
 authors = [
     {name = "Christian Kranemann", email = "christian.kranemann@al-ko.com"},
@@ -47,3 +47,11 @@ dev = [
 types-boto3-custom = { path = "vendored/types_boto3_custom-1.36.11-py3-none-any.whl" }
 
 [tool.ruff]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "$version"
+version_scheme = "pep440"
+version_provider = "pep621"
+update_changelog_on_bump = true
+major_version_zero = true
