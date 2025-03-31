@@ -1,10 +1,6 @@
 from typing import Any, Type
 
-from ...core import (
-    DefaultAsset,
-    MetaDataNotStoredException,
-    MetaPersister,
-)
+from ...core import MetaDataNotStoredException, MetaPersistable, MetaPersister
 from ..resources.file import FileResource
 
 
@@ -13,18 +9,18 @@ class FileMetaPersister(MetaPersister):
         self.folder = folder
 
     def register(
-        self, *asset: DefaultAsset | Type[DefaultAsset], **kwargs: Any
+        self, *asset: MetaPersistable | Type[MetaPersistable], **kwargs: Any
     ) -> None:
         for a in asset:
             self.patch_asset(a)
 
-    def save(self, asset: DefaultAsset) -> None:
+    def save(self, asset: MetaPersistable) -> None:
         path = asset.asset_id().as_path()
         with self.folder.open(path, mode="w") as f:
             data = asset.meta.to_json()
             f.write(data)
 
-    def load(self, asset: DefaultAsset) -> None:
+    def load(self, asset: MetaPersistable) -> None:
         path = asset.asset_id().as_path()
         if not self.folder.exists(path):
             raise MetaDataNotStoredException()

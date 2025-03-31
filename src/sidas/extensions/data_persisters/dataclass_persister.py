@@ -1,18 +1,13 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Literal, Type, get_args
+from typing import Any, Literal, Type, get_args
 
 import polars as pl
 
-if TYPE_CHECKING:
-    from _typeshed import DataclassInstance
-else:
-    DataclassInstance = object
-
-from ...core import BaseAsset, DataPersister
+from ...core import DataPersistableProtocol, DataPersister
 from ..resources.databases import DatabaseResource
 from ..resources.file import FileResource
 
-DataclassAsset = BaseAsset[Any, list[Any]]
+DataclassPersistable = DataPersistableProtocol[list[Any]]
 
 
 @dataclass
@@ -21,10 +16,10 @@ class DataclassPersisterFileResource:
     file_format: Literal["csv", "parquet", "json", "ndjson"] = "ndjson"
     strict: bool = False
 
-    def save(self, asset: DataclassAsset) -> None:
+    def save(self, asset: DataclassPersistable) -> None:
         path = asset.asset_id().as_path(suffix=self.file_format)
         schema = asset.schema if hasattr(asset, "schema") else None  # type: ignore
-        data = pl.DataFrame(asset.data, schema=schema, strict=self.strict, orient="row")
+        data = pl.DataFrame(asset.data, schema=schema, strict=self.strict, orient="row")  # type: ignore
 
         match self.file_format:
             case "csv":
@@ -43,7 +38,7 @@ class DataclassPersisterFileResource:
                 with self.file.open(path, "w") as f:
                     data.write_ndjson(f)
 
-    def load(self, asset: DataclassAsset) -> None:
+    def load(self, asset: DataclassPersistable) -> None:
         path = asset.asset_id().as_path(suffix=self.file_format)
 
         match self.file_format:
@@ -74,7 +69,7 @@ class DataclassPersisterDBResource:
     strict: bool = False
     batch: int | None = None
 
-    def save(self, asset: DataclassAsset) -> None:
+    def save(self, asset: DataclassPersistable) -> None:
         name = asset.asset_id().as_path().name
         data = pl.DataFrame(asset.data, strict=self.strict)
 
@@ -95,7 +90,7 @@ class DataclassPersisterDBResource:
                 else:
                     chunk.write_database(name, con, if_table_exists="append")
 
-    def load(self, asset: DataclassAsset) -> None:
+    def load(self, asset: DataclassPersistable) -> None:
         name = asset.asset_id().as_path().name
         query = f"select * from {name};"
         with self.db.get_connection() as con:
@@ -122,12 +117,15 @@ class DataclassPersister(DataPersister):
         self.resource = resource
 
     def register(
-        self, asset: DataclassAsset | Type[DataclassAsset], *args: Any, **kwargs: Any
+        self,
+        asset: DataclassPersistable | Type[DataclassPersistable],
+        *args: Any,
+        **kwargs: Any,
     ) -> None:
         self.patch_asset(asset)
 
-    def load(self, asset: DataclassAsset) -> None:
+    def load(self, asset: DataclassPersistable) -> None:
         self.resource.load(asset)
 
-    def save(self, asset: DataclassAsset) -> None:
+    def save(self, asset: DataclassPersistable) -> None:
         self.resource.save(asset)

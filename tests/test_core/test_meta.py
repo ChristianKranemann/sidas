@@ -2,7 +2,12 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from sidas.core import AssetStatus, CoordinatorMeta, CoordinatorStatus, MetaBase
+from sidas.core import (
+    AssetMetaData,
+    AssetStatus,
+    CoordinatorMetaData,
+    CoordinatorStatus,
+)
 
 
 class TestAssetStatus:
@@ -24,149 +29,155 @@ class TestAssetStatus:
         assert AssetStatus("MATERIALIZED") == AssetStatus.MATERIALIZED
 
 
-class TestMetaBase:
+class TestAssetMetaData:
     """Tests for the MetaBase class."""
 
     def test_default_initialization(self):
         """Test that a new MetaBase instance has the expected default values."""
         before = datetime.now()
-        meta = MetaBase()
+        meta = AssetMetaData()
         after = datetime.now()
 
-        assert meta.status == AssetStatus.INITIALIZED
-        assert before <= meta.initialized_at <= after
+        assert meta.status == AssetStatus.INITIALIZING
+
+        assert meta.updated_at is not None
+        assert meta.initializing_started_at is not None
+        assert meta.initializing_stopped_at is None
         assert meta.materializing_started_at is None
         assert meta.materializing_stopped_at is None
         assert meta.persisting_started_at is None
         assert meta.persisting_stopped_at is None
+
         assert before <= meta.updated_at <= after
-
-    def test_custom_initialization(self):
-        """Test initialization with custom values."""
-        now = datetime.now()
-        meta = MetaBase(
-            status=AssetStatus.MATERIALIZED,
-            initialized_at=now,
-            materializing_started_at=now - timedelta(minutes=5),
-            materializing_stopped_at=now,
-            updated_at=now,
-        )
-
-        assert meta.status == AssetStatus.MATERIALIZED
-        assert meta.initialized_at == now
-        assert meta.materializing_started_at == now - timedelta(minutes=5)
-        assert meta.materializing_stopped_at == now
-        assert meta.persisting_started_at is None
-        assert meta.persisting_stopped_at is None
-        assert meta.updated_at == now
+        assert before <= meta.initializing_started_at <= after
 
     def test_update_status_initialized(self):
         """Test updating status to INITIALIZED."""
-        meta = MetaBase(status=AssetStatus.MATERIALIZED)
-        before = datetime.now()
+        meta = AssetMetaData()
         meta.update_status(AssetStatus.INITIALIZED)
-        after = datetime.now()
 
         assert meta.status == AssetStatus.INITIALIZED
-        assert before <= meta.initialized_at <= after
-        assert before <= meta.updated_at <= after
+
+        assert meta.updated_at is not None
+        assert meta.initializing_started_at is not None
+        assert meta.initializing_stopped_at is not None
+        assert meta.materializing_started_at is None
+        assert meta.materializing_stopped_at is None
+        assert meta.persisting_started_at is None
+        assert meta.persisting_stopped_at is None
+
+        assert meta.initializing_started_at <= meta.initializing_stopped_at
 
     def test_update_status_materializing(self):
         """Test updating status to MATERIALIZING."""
-        meta = MetaBase()
-        before = datetime.now()
+        meta = AssetMetaData()
         meta.update_status(AssetStatus.MATERIALIZING)
-        after = datetime.now()
 
         assert meta.status == AssetStatus.MATERIALIZING
+
+        assert meta.updated_at is not None
+        assert meta.initializing_started_at is not None
+        assert meta.initializing_stopped_at is None
         assert meta.materializing_started_at is not None
-        assert before <= meta.materializing_started_at <= after
         assert meta.materializing_stopped_at is None
-        assert before <= meta.updated_at <= after
+        assert meta.persisting_started_at is None
+        assert meta.persisting_stopped_at is None
+
+        assert meta.initializing_started_at <= meta.materializing_started_at
 
     def test_update_status_materializing_failed(self):
         """Test updating status to MATERIALIZING_FAILED."""
-        meta = MetaBase()
-        meta.update_status(AssetStatus.MATERIALIZING)
-
-        before = datetime.now()
+        meta = AssetMetaData()
         meta.update_status(AssetStatus.MATERIALIZING_FAILED)
-        after = datetime.now()
 
         assert meta.status == AssetStatus.MATERIALIZING_FAILED
-        assert meta.materializing_started_at is not None
+
+        assert meta.updated_at is not None
+        assert meta.initializing_started_at is not None
+        assert meta.initializing_stopped_at is None
+        assert meta.materializing_started_at is None
         assert meta.materializing_stopped_at is not None
-        assert before <= meta.materializing_stopped_at <= after
-        assert before <= meta.updated_at <= after
+        assert meta.persisting_started_at is None
+        assert meta.persisting_stopped_at is None
+
+        assert meta.initializing_started_at <= meta.materializing_stopped_at
 
     def test_update_status_materialized(self):
         """Test updating status to MATERIALIZED."""
-        meta = MetaBase()
-        meta.update_status(AssetStatus.MATERIALIZING)
-
-        before = datetime.now()
+        meta = AssetMetaData()
         meta.update_status(AssetStatus.MATERIALIZED)
-        after = datetime.now()
 
         assert meta.status == AssetStatus.MATERIALIZED
-        assert meta.materializing_started_at is not None
+
+        assert meta.updated_at is not None
+        assert meta.initializing_started_at is not None
+        assert meta.initializing_stopped_at is None
+        assert meta.materializing_started_at is None
         assert meta.materializing_stopped_at is not None
-        assert before <= meta.materializing_stopped_at <= after
-        assert before <= meta.updated_at <= after
+        assert meta.persisting_started_at is None
+        assert meta.persisting_stopped_at is None
+
+        assert meta.initializing_started_at <= meta.materializing_stopped_at
 
     def test_update_status_persisting(self):
         """Test updating status to PERSISTING."""
-        meta = MetaBase()
-        meta.update_status(AssetStatus.MATERIALIZED)
-
-        before = datetime.now()
+        meta = AssetMetaData()
         meta.update_status(AssetStatus.PERSISTING)
-        after = datetime.now()
 
         assert meta.status == AssetStatus.PERSISTING
-        assert meta.materializing_stopped_at is not None
+
+        assert meta.updated_at is not None
+        assert meta.initializing_started_at is not None
+        assert meta.initializing_stopped_at is None
+        assert meta.materializing_started_at is None
+        assert meta.materializing_stopped_at is None
         assert meta.persisting_started_at is not None
-        assert before <= meta.persisting_started_at <= after
         assert meta.persisting_stopped_at is None
-        assert before <= meta.updated_at <= after
+
+        assert meta.initializing_started_at <= meta.persisting_started_at
 
     def test_update_status_persisting_failed(self):
         """Test updating status to PERSISTING_FAILED."""
-        meta = MetaBase()
-        meta.update_status(AssetStatus.PERSISTING)
-
-        before = datetime.now()
+        meta = AssetMetaData()
         meta.update_status(AssetStatus.PERSISTING_FAILED)
-        after = datetime.now()
 
         assert meta.status == AssetStatus.PERSISTING_FAILED
-        assert meta.persisting_started_at is not None
+
+        assert meta.updated_at is not None
+        assert meta.initializing_started_at is not None
+        assert meta.initializing_stopped_at is None
+        assert meta.materializing_started_at is None
+        assert meta.materializing_stopped_at is None
+        assert meta.persisting_started_at is None
         assert meta.persisting_stopped_at is not None
-        assert before <= meta.persisting_stopped_at <= after
-        assert before <= meta.updated_at <= after
+
+        assert meta.initializing_started_at <= meta.persisting_stopped_at
 
     def test_update_status_persisted(self):
         """Test updating status to PERSISTED."""
-        meta = MetaBase()
-        meta.update_status(AssetStatus.PERSISTING)
-
-        before = datetime.now()
+        meta = AssetMetaData()
         meta.update_status(AssetStatus.PERSISTED)
-        after = datetime.now()
 
         assert meta.status == AssetStatus.PERSISTED
-        assert meta.persisting_started_at is not None
+
+        assert meta.updated_at is not None
+        assert meta.initializing_started_at is not None
+        assert meta.initializing_stopped_at is None
+        assert meta.materializing_started_at is None
+        assert meta.materializing_stopped_at is None
+        assert meta.persisting_started_at is None
         assert meta.persisting_stopped_at is not None
-        assert before <= meta.persisting_stopped_at <= after
-        assert before <= meta.updated_at <= after
+
+        assert meta.initializing_started_at <= meta.persisting_stopped_at
 
     def test_status_chaining(self):
         """Test the full lifecycle of status updates with method chaining."""
-        meta = MetaBase()
+        meta = AssetMetaData()
 
         # Test method chaining
         result = (
-            meta.update_status(AssetStatus.MATERIALIZING)
+            meta.update_status(AssetStatus.INITIALIZED)
+            .update_status(AssetStatus.MATERIALIZING)
             .update_status(AssetStatus.MATERIALIZED)
             .update_status(AssetStatus.PERSISTING)
             .update_status(AssetStatus.PERSISTED)
@@ -174,17 +185,29 @@ class TestMetaBase:
 
         assert result is meta  # Confirm method chaining returns self
         assert meta.status == AssetStatus.PERSISTED
+
+        assert meta.initializing_started_at is not None
+        assert meta.initializing_stopped_at is not None
         assert meta.materializing_started_at is not None
         assert meta.materializing_stopped_at is not None
         assert meta.persisting_started_at is not None
         assert meta.persisting_stopped_at is not None
-        assert meta.persisting_started_at > meta.materializing_stopped_at
+
+        assert meta.initializing_started_at <= meta.initializing_stopped_at
+        assert meta.initializing_stopped_at <= meta.materializing_started_at
+        assert meta.materializing_started_at <= meta.materializing_stopped_at
+        assert meta.materializing_stopped_at <= meta.persisting_started_at
+        assert meta.persisting_started_at <= meta.persisting_stopped_at
 
     def test_in_progress(self):
         """Test the in_progress method."""
-        meta = MetaBase()
+        meta = AssetMetaData()
 
-        assert not meta.in_progress()  # INITIALIZED is not in progress
+        meta.update_status(AssetStatus.INITIALIZING)
+        assert not meta.in_progress()
+
+        meta.update_status(AssetStatus.INITIALIZED)
+        assert not meta.in_progress()
 
         meta.update_status(AssetStatus.MATERIALIZING)
         assert meta.in_progress()
@@ -200,7 +223,7 @@ class TestMetaBase:
 
     def test_has_error(self):
         """Test the has_error method."""
-        meta = MetaBase()
+        meta = AssetMetaData()
 
         assert not meta.has_error()  # INITIALIZED has no error
 
@@ -220,9 +243,9 @@ class TestMetaBase:
         """Test serialization to and from JSON."""
         # Create a MetaBase with defined timestamps to avoid timing issues
         now = datetime.now()
-        original = MetaBase(
+        original = AssetMetaData(
             status=AssetStatus.PERSISTED,
-            initialized_at=now - timedelta(minutes=10),
+            initializing_started_at=now - timedelta(minutes=10),
             materializing_started_at=now - timedelta(minutes=8),
             materializing_stopped_at=now - timedelta(minutes=5),
             persisting_started_at=now - timedelta(minutes=3),
@@ -234,11 +257,11 @@ class TestMetaBase:
         json_data = original.to_json()
 
         # Create a new instance from the JSON
-        recreated = MetaBase.from_json(json_data)
+        recreated = AssetMetaData.from_json(json_data)
 
         # Verify all fields match
         assert recreated.status == original.status
-        assert recreated.initialized_at == original.initialized_at
+        assert recreated.initializing_started_at == original.initializing_started_at
         assert recreated.materializing_started_at == original.materializing_started_at
         assert recreated.materializing_stopped_at == original.materializing_stopped_at
         assert recreated.persisting_started_at == original.persisting_started_at
@@ -248,7 +271,7 @@ class TestMetaBase:
     def test_json_validation_error(self):
         """Test that invalid JSON data raises a validation error."""
         with pytest.raises(Exception):  # Pydantic will raise a validation error
-            MetaBase.from_json('{"status": "INVALID_STATUS"}')
+            AssetMetaData.from_json('{"status": "INVALID_STATUS"}')
 
 
 class TestCoordinatorMeta:
@@ -259,62 +282,46 @@ class TestCoordinatorMeta:
     def test_default_initialization(self):
         """Test that a new MetaBase instance has the expected default values."""
         before = datetime.now()
-        meta = CoordinatorMeta(cron_expression=self.cron_expression)
+        meta = CoordinatorMetaData(cron_expression=self.cron_expression)
         after = datetime.now()
 
-        assert meta.status == CoordinatorStatus.INITIALIZED
-        assert before <= meta.next_schedule <= after
-        assert before <= meta.initialized_at <= after
+        assert meta.status == CoordinatorStatus.INITIALIZING
         assert meta.hydrating_started_at is None
         assert meta.hydrating_stopped_at is None
         assert meta.processing_started_at is None
         assert meta.processing_stopped_at is None
         assert meta.terminating_started_at is None
         assert meta.terminating_stopped_at is None
+
         assert before <= meta.updated_at <= after
-
-    def test_custom_initialization(self):
-        """Test initialization with custom values."""
-        now = datetime.now()
-        meta = CoordinatorMeta(
-            cron_expression=self.cron_expression,
-            status=CoordinatorStatus.PROCESSING,
-            initialized_at=now,
-            hydrating_started_at=now - timedelta(minutes=5),
-            hydrating_stopped_at=now,
-            processing_started_at=now,
-            updated_at=now,
-        )
-
-        assert meta.status == CoordinatorStatus.PROCESSING
-        assert meta.initialized_at == now
-        assert meta.hydrating_started_at == now - timedelta(minutes=5)
-        assert meta.hydrating_stopped_at == now
-        assert meta.processing_started_at == now
-        assert meta.processing_stopped_at is None
-        assert meta.terminating_started_at is None
-        assert meta.terminating_stopped_at is None
-        assert meta.updated_at == now
+        assert before <= meta.next_schedule <= after
+        assert before <= meta.initializing_started_at <= after
 
     def test_update_status_initialized(self):
         """Test updating status to INITIALIZED."""
-        meta = CoordinatorMeta(cron_expression=self.cron_expression)
-        before = datetime.now()
+        meta = CoordinatorMetaData(cron_expression=self.cron_expression)
         meta.update_status(CoordinatorStatus.INITIALIZED)
-        after = datetime.now()
 
         assert meta.status == AssetStatus.INITIALIZED
-        assert before <= meta.initialized_at <= after
-        assert before <= meta.updated_at <= after
+        assert meta.initializing_started_at is not None
+        assert meta.initializing_stopped_at is not None
+        assert meta.hydrating_stopped_at is None
+        assert meta.processing_started_at is None
+        assert meta.processing_stopped_at is None
+        assert meta.terminating_started_at is None
+        assert meta.terminating_stopped_at is None
+
+        assert meta.initializing_started_at <= meta.updated_at
+        assert meta.initializing_started_at <= meta.initializing_stopped_at
 
     def test_update_status_hydrating(self):
         """Test updating status to HYDRATING."""
-        meta = CoordinatorMeta(cron_expression=self.cron_expression)
-        before = datetime.now()
+        meta = CoordinatorMetaData(cron_expression=self.cron_expression)
         meta.update_status(CoordinatorStatus.HYDRATING)
-        after = datetime.now()
 
         assert meta.status == CoordinatorStatus.HYDRATING
+        assert meta.initializing_started_at is not None
+        assert meta.initializing_stopped_at is None
         assert meta.hydrating_started_at is not None
         assert meta.hydrating_stopped_at is None
         assert meta.processing_started_at is None
@@ -322,17 +329,17 @@ class TestCoordinatorMeta:
         assert meta.terminating_started_at is None
         assert meta.terminating_stopped_at is None
 
-        assert before <= meta.hydrating_started_at <= after
-        assert before <= meta.updated_at <= after
+        assert meta.initializing_started_at <= meta.updated_at
+        assert meta.initializing_started_at <= meta.hydrating_started_at
 
     def test_update_status_hydrating_failed(self):
-        """Test updating status to HYDRATING_ERROR."""
-        meta = CoordinatorMeta(cron_expression=self.cron_expression)
-        before = datetime.now()
-        meta.update_status(CoordinatorStatus.HYDRATING_ERROR)
-        after = datetime.now()
+        """Test updating status to HYDRATING_FAILED."""
+        meta = CoordinatorMetaData(cron_expression=self.cron_expression)
+        meta.update_status(CoordinatorStatus.HYDRATING_FAILED)
 
-        assert meta.status == CoordinatorStatus.HYDRATING_ERROR
+        assert meta.status == CoordinatorStatus.HYDRATING_FAILED
+        assert meta.initializing_started_at is not None
+        assert meta.initializing_stopped_at is None
         assert meta.hydrating_started_at is None
         assert meta.hydrating_stopped_at is not None
         assert meta.processing_started_at is None
@@ -340,17 +347,17 @@ class TestCoordinatorMeta:
         assert meta.terminating_started_at is None
         assert meta.terminating_stopped_at is None
 
-        assert before <= meta.hydrating_stopped_at <= after
-        assert before <= meta.updated_at <= after
+        assert meta.initializing_started_at <= meta.updated_at
+        assert meta.initializing_started_at <= meta.hydrating_stopped_at
 
     def test_update_status_hydrated(self):
         """Test updating status to HYDRATED."""
-        meta = CoordinatorMeta(cron_expression=self.cron_expression)
-        before = datetime.now()
+        meta = CoordinatorMetaData(cron_expression=self.cron_expression)
         meta.update_status(CoordinatorStatus.HYDRATED)
-        after = datetime.now()
 
         assert meta.status == CoordinatorStatus.HYDRATED
+        assert meta.initializing_started_at is not None
+        assert meta.initializing_stopped_at is None
         assert meta.hydrating_started_at is None
         assert meta.hydrating_stopped_at is not None
         assert meta.processing_started_at is None
@@ -358,17 +365,17 @@ class TestCoordinatorMeta:
         assert meta.terminating_started_at is None
         assert meta.terminating_stopped_at is None
 
-        assert before <= meta.hydrating_stopped_at <= after
-        assert before <= meta.updated_at <= after
+        assert meta.initializing_started_at <= meta.updated_at
+        assert meta.initializing_started_at <= meta.hydrating_stopped_at
 
     def test_update_status_processing(self):
         """Test updating status to PROCESSING."""
-        meta = CoordinatorMeta(cron_expression=self.cron_expression)
-        before = datetime.now()
+        meta = CoordinatorMetaData(cron_expression=self.cron_expression)
         meta.update_status(CoordinatorStatus.PROCESSING)
-        after = datetime.now()
 
         assert meta.status == CoordinatorStatus.PROCESSING
+        assert meta.initializing_started_at is not None
+        assert meta.initializing_stopped_at is None
         assert meta.hydrating_started_at is None
         assert meta.hydrating_stopped_at is None
         assert meta.processing_started_at is not None
@@ -376,17 +383,17 @@ class TestCoordinatorMeta:
         assert meta.terminating_started_at is None
         assert meta.terminating_stopped_at is None
 
-        assert before <= meta.processing_started_at <= after
-        assert before <= meta.updated_at <= after
+        assert meta.initializing_started_at <= meta.updated_at
+        assert meta.initializing_started_at <= meta.processing_started_at
 
     def test_update_status_processing_failed(self):
-        """Test updating status to PROCESSING_ERROR."""
-        meta = CoordinatorMeta(cron_expression=self.cron_expression)
-        before = datetime.now()
-        meta.update_status(CoordinatorStatus.PROCESSING_ERROR)
-        after = datetime.now()
+        """Test updating status to PROCESSING_FAILED."""
+        meta = CoordinatorMetaData(cron_expression=self.cron_expression)
+        meta.update_status(CoordinatorStatus.PROCESSING_FAILED)
 
-        assert meta.status == CoordinatorStatus.PROCESSING_ERROR
+        assert meta.status == CoordinatorStatus.PROCESSING_FAILED
+        assert meta.initializing_started_at is not None
+        assert meta.initializing_stopped_at is None
         assert meta.hydrating_started_at is None
         assert meta.hydrating_stopped_at is None
         assert meta.processing_started_at is None
@@ -394,17 +401,17 @@ class TestCoordinatorMeta:
         assert meta.terminating_started_at is None
         assert meta.terminating_stopped_at is None
 
-        assert before <= meta.processing_stopped_at <= after
-        assert before <= meta.updated_at <= after
+        assert meta.initializing_started_at <= meta.updated_at
+        assert meta.initializing_started_at <= meta.processing_stopped_at
 
     def test_update_status_processed(self):
         """Test updating status to PROCESSED."""
-        meta = CoordinatorMeta(cron_expression=self.cron_expression)
-        before = datetime.now()
+        meta = CoordinatorMetaData(cron_expression=self.cron_expression)
         meta.update_status(CoordinatorStatus.PROCESSED)
-        after = datetime.now()
 
         assert meta.status == CoordinatorStatus.PROCESSED
+        assert meta.initializing_started_at is not None
+        assert meta.initializing_stopped_at is None
         assert meta.hydrating_started_at is None
         assert meta.hydrating_stopped_at is None
         assert meta.processing_started_at is None
@@ -412,17 +419,17 @@ class TestCoordinatorMeta:
         assert meta.terminating_started_at is None
         assert meta.terminating_stopped_at is None
 
-        assert before <= meta.processing_stopped_at <= after
-        assert before <= meta.updated_at <= after
+        assert meta.initializing_started_at <= meta.updated_at
+        assert meta.initializing_started_at <= meta.processing_stopped_at
 
     def test_update_status_waiting(self):
         """Test updating status to WAITING."""
-        meta = CoordinatorMeta(cron_expression=self.cron_expression)
-        before = datetime.now()
+        meta = CoordinatorMetaData(cron_expression=self.cron_expression)
         meta.update_status(CoordinatorStatus.WAITING)
-        after = datetime.now()
 
         assert meta.status == CoordinatorStatus.WAITING
+        assert meta.initializing_started_at is not None
+        assert meta.initializing_stopped_at is None
         assert meta.hydrating_started_at is None
         assert meta.hydrating_stopped_at is None
         assert meta.processing_started_at is None
@@ -430,16 +437,16 @@ class TestCoordinatorMeta:
         assert meta.terminating_started_at is None
         assert meta.terminating_stopped_at is None
 
-        assert before <= meta.updated_at <= after
+        assert meta.initializing_started_at <= meta.updated_at
 
     def test_update_status_terminating(self):
         """Test updating status to TERMINATING."""
-        meta = CoordinatorMeta(cron_expression=self.cron_expression)
-        before = datetime.now()
+        meta = CoordinatorMetaData(cron_expression=self.cron_expression)
         meta.update_status(CoordinatorStatus.TERMINATING)
-        after = datetime.now()
 
         assert meta.status == CoordinatorStatus.TERMINATING
+        assert meta.initializing_started_at is not None
+        assert meta.initializing_stopped_at is None
         assert meta.hydrating_started_at is None
         assert meta.hydrating_stopped_at is None
         assert meta.processing_started_at is None
@@ -447,17 +454,17 @@ class TestCoordinatorMeta:
         assert meta.terminating_started_at is not None
         assert meta.terminating_stopped_at is None
 
-        assert before <= meta.terminating_started_at <= after
-        assert before <= meta.updated_at <= after
+        assert meta.initializing_started_at <= meta.updated_at
+        assert meta.initializing_started_at <= meta.terminating_started_at
 
     def test_update_status_terminated(self):
         """Test updating status to TERMINATED."""
-        meta = CoordinatorMeta(cron_expression=self.cron_expression)
-        before = datetime.now()
+        meta = CoordinatorMetaData(cron_expression=self.cron_expression)
         meta.update_status(CoordinatorStatus.TERMINATED)
-        after = datetime.now()
 
         assert meta.status == CoordinatorStatus.TERMINATED
+        assert meta.initializing_started_at is not None
+        assert meta.initializing_stopped_at is None
         assert meta.hydrating_started_at is None
         assert meta.hydrating_stopped_at is None
         assert meta.processing_started_at is None
@@ -465,16 +472,17 @@ class TestCoordinatorMeta:
         assert meta.terminating_started_at is None
         assert meta.terminating_stopped_at is not None
 
-        assert before <= meta.terminating_stopped_at <= after
-        assert before <= meta.updated_at <= after
+        assert meta.initializing_started_at <= meta.updated_at
+        assert meta.initializing_started_at <= meta.terminating_stopped_at
 
     def test_status_chaining(self):
         """Test the full lifecycle of status updates with method chaining."""
-        meta = CoordinatorMeta(cron_expression=self.cron_expression)
+        meta = CoordinatorMetaData(cron_expression=self.cron_expression)
 
         # Test method chaining
         result = (
-            meta.update_status(CoordinatorStatus.HYDRATING)
+            meta.update_status(CoordinatorStatus.INITIALIZED)
+            .update_status(CoordinatorStatus.HYDRATING)
             .update_status(CoordinatorStatus.HYDRATED)
             .update_status(CoordinatorStatus.PROCESSING)
             .update_status(CoordinatorStatus.PROCESSED)
@@ -485,6 +493,8 @@ class TestCoordinatorMeta:
 
         assert result is meta  # Confirm method chaining returns self
         assert meta.status == CoordinatorStatus.TERMINATED
+        assert meta.initializing_started_at is not None
+        assert meta.initializing_stopped_at is not None
         assert meta.hydrating_started_at is not None
         assert meta.hydrating_stopped_at is not None
         assert meta.processing_started_at is not None
@@ -492,7 +502,8 @@ class TestCoordinatorMeta:
         assert meta.terminating_started_at is not None
         assert meta.terminating_stopped_at is not None
 
-        assert meta.hydrating_started_at > meta.initialized_at
+        assert meta.initializing_stopped_at > meta.initializing_started_at
+        assert meta.hydrating_started_at > meta.initializing_stopped_at
         assert meta.hydrating_stopped_at > meta.hydrating_started_at
         assert meta.processing_started_at > meta.hydrating_stopped_at
         assert meta.processing_stopped_at > meta.processing_started_at
@@ -501,24 +512,29 @@ class TestCoordinatorMeta:
 
     def test_in_progress(self):
         """Test the in_progress method."""
-        meta = CoordinatorMeta(cron_expression=self.cron_expression)
+        meta = CoordinatorMetaData(cron_expression=self.cron_expression)
 
         for value in CoordinatorStatus:
             meta.update_status(value)
-            if value in (CoordinatorStatus.HYDRATING, CoordinatorStatus.PROCESSING):
+            if value in (
+                CoordinatorStatus.INITIALIZING,
+                CoordinatorStatus.HYDRATING,
+                CoordinatorStatus.PROCESSING,
+            ):
                 assert meta.in_progress()
             else:
                 assert not meta.in_progress()
 
     def test_has_error(self):
         """Test the test_has_error method."""
-        meta = CoordinatorMeta(cron_expression=self.cron_expression)
+        meta = CoordinatorMetaData(cron_expression=self.cron_expression)
 
         for value in CoordinatorStatus:
             meta.update_status(value)
             if value in (
-                CoordinatorStatus.HYDRATING_ERROR,
-                CoordinatorStatus.PROCESSING_ERROR,
+                CoordinatorStatus.INITIALIZING_FAILED,
+                CoordinatorStatus.HYDRATING_FAILED,
+                CoordinatorStatus.PROCESSING_FAILED,
             ):
                 assert meta.has_error()
             else:
@@ -528,13 +544,17 @@ class TestCoordinatorMeta:
         """Test serialization to and from JSON."""
         # Create a MetaBase with defined timestamps to avoid timing issues
         now = datetime.now()
-        original = MetaBase(
-            status=AssetStatus.PERSISTED,
-            initialized_at=now - timedelta(minutes=10),
-            materializing_started_at=now - timedelta(minutes=8),
-            materializing_stopped_at=now - timedelta(minutes=5),
-            persisting_started_at=now - timedelta(minutes=3),
-            persisting_stopped_at=now - timedelta(minutes=1),
+        original = CoordinatorMetaData(
+            cron_expression="",
+            status=CoordinatorStatus.TERMINATED,
+            initializing_started_at=now - timedelta(minutes=10),
+            initializing_stopped_at=now - timedelta(minutes=9),
+            hydrating_started_at=now - timedelta(minutes=5),
+            hydrating_stopped_at=now - timedelta(minutes=4),
+            processing_started_at=now - timedelta(minutes=3),
+            processing_stopped_at=now - timedelta(minutes=2),
+            terminating_started_at=now - timedelta(minutes=1),
+            terminating_stopped_at=now,
             updated_at=now,
         )
 
@@ -542,18 +562,21 @@ class TestCoordinatorMeta:
         json_data = original.to_json()
 
         # Create a new instance from the JSON
-        recreated = MetaBase.from_json(json_data)
+        recreated = CoordinatorMetaData.from_json(json_data)
 
         # Verify all fields match
         assert recreated.status == original.status
-        assert recreated.initialized_at == original.initialized_at
-        assert recreated.materializing_started_at == original.materializing_started_at
-        assert recreated.materializing_stopped_at == original.materializing_stopped_at
-        assert recreated.persisting_started_at == original.persisting_started_at
-        assert recreated.persisting_stopped_at == original.persisting_stopped_at
+        assert recreated.initializing_started_at == original.initializing_started_at
+        assert recreated.initializing_stopped_at == original.initializing_stopped_at
+        assert recreated.hydrating_started_at == original.hydrating_started_at
+        assert recreated.hydrating_stopped_at == original.hydrating_stopped_at
+        assert recreated.processing_started_at == original.processing_started_at
+        assert recreated.processing_stopped_at == original.processing_stopped_at
+        assert recreated.terminating_started_at == original.terminating_started_at
+        assert recreated.terminating_stopped_at == original.terminating_stopped_at
         assert recreated.updated_at == original.updated_at
 
     def test_json_validation_error(self):
         """Test that invalid JSON data raises a validation error."""
         with pytest.raises(Exception):  # Pydantic will raise a validation error
-            MetaBase.from_json('{"status": "INVALID_STATUS"}')
+            CoordinatorMetaData.from_json('{"status": "INVALID_STATUS"}')

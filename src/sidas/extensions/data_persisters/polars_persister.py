@@ -3,14 +3,11 @@ from typing import Any, Literal, Type
 
 import polars as pl
 
-from ...core import (
-    BaseAsset,
-    DataPersister,
-)
+from ...core import DataPersistableProtocol, DataPersister
 from ..resources.databases import DatabaseResource
 from ..resources.file import FileResource
 
-PolarsAsset = BaseAsset[Any, pl.DataFrame]
+PolarsPersistable = DataPersistableProtocol[Any]
 
 
 @dataclass
@@ -18,7 +15,7 @@ class PolarsPersisterFileResource:
     file: FileResource
     format: Literal["csv", "parquet", "json", "ndjson"] = "ndjson"
 
-    def save(self, asset: PolarsAsset) -> None:
+    def save(self, asset: PolarsPersistable) -> None:
         path = asset.asset_id().as_path(suffix=self.format)
 
         match self.format:
@@ -38,7 +35,7 @@ class PolarsPersisterFileResource:
                 with self.file.open(path, "w") as f:
                     asset.data.write_ndjson(f)
 
-    def load(self, asset: PolarsAsset) -> None:
+    def load(self, asset: PolarsPersistable) -> None:
         path = asset.asset_id().as_path(suffix=self.format)
 
         match self.format:
@@ -65,7 +62,7 @@ class PolarsPersisterDBResource:
     if_table_exists: Literal["append", "replace", "fail"] = "replace"
     batch: int | None = None
 
-    def save(self, asset: PolarsAsset) -> None:
+    def save(self, asset: PolarsPersistable) -> None:
         name = asset.asset_id().as_path().name
         chunks = [asset.data]
         if self.batch:
@@ -88,7 +85,7 @@ class PolarsPersisterDBResource:
         with self.db.get_connection() as con:
             asset.data.write_database(name, con, if_table_exists=self.if_table_exists)
 
-    def load(self, asset: PolarsAsset) -> None:
+    def load(self, asset: PolarsPersistable) -> None:
         name = asset.asset_id().as_path().name
         query = f"select * from {name};"
         with self.db.get_connection() as con:
@@ -108,12 +105,15 @@ class PolarsPersister(DataPersister):
         self.resource = resource
 
     def register(
-        self, asset: PolarsAsset | Type[PolarsAsset], *args: Any, **kwargs: Any
+        self,
+        asset: PolarsPersistable | Type[PolarsPersistable],
+        *args: Any,
+        **kwargs: Any,
     ) -> None:
         self.patch_asset(asset)
 
-    def load(self, asset: PolarsAsset) -> None:
+    def load(self, asset: PolarsPersistable) -> None:
         self.resource.load(asset)
 
-    def save(self, asset: PolarsAsset) -> None:
+    def save(self, asset: PolarsPersistable) -> None:
         self.resource.save(asset)

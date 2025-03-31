@@ -4,14 +4,11 @@ from typing import Any, Literal, Type
 import duckdb
 import polars as pl
 
-from ...core import (
-    BaseAsset,
-    DataPersister,
-)
+from ...core import DataPersistableProtocol, DataPersister
 from ..resources.databases import DatabaseResource
 from ..resources.file import FileResource
 
-DuckDbAsset = BaseAsset[Any, duckdb.DuckDBPyRelation]
+DuckDbPersistable = DataPersistableProtocol[duckdb.DuckDBPyRelation]
 
 
 @dataclass
@@ -19,7 +16,7 @@ class DuckDbPersisterFileResource:
     file: FileResource
     format: Literal["csv", "parquet", "json", "ndjson"] = "ndjson"
 
-    def save(self, asset: DuckDbAsset) -> None:
+    def save(self, asset: DuckDbPersistable) -> None:
         path = asset.asset_id().as_path(suffix=self.format)
         data = asset.data.pl()
 
@@ -40,7 +37,7 @@ class DuckDbPersisterFileResource:
                 with self.file.open(path, "w") as f:
                     data.write_ndjson(f)
 
-    def load(self, asset: DuckDbAsset) -> None:
+    def load(self, asset: DuckDbPersistable) -> None:
         path = asset.asset_id().as_path(suffix=self.format)
         name = asset.asset_id().as_path().name
         match self.format:
@@ -71,13 +68,13 @@ class DuckDbPersisterDBResource:
     db: DatabaseResource
     if_table_exists: Literal["append", "replace", "fail"] = "replace"
 
-    def save(self, asset: DuckDbAsset) -> None:
+    def save(self, asset: DuckDbPersistable) -> None:
         name = asset.asset_id().as_path().name
         data = asset.data.pl()
         with self.db.get_connection() as con:
             data.write_database(name, con, if_table_exists=self.if_table_exists)
 
-    def load(self, asset: DuckDbAsset) -> None:
+    def load(self, asset: DuckDbPersistable) -> None:
         name = asset.asset_id().as_path().name
         query = f"select * from {name};"
         with self.db.get_connection() as con:
@@ -102,12 +99,15 @@ class DuckDbPersister(DataPersister):
         self.resource = resource
 
     def register(
-        self, asset: DuckDbAsset | Type[DuckDbAsset], *args: Any, **kwargs: Any
+        self,
+        asset: DuckDbPersistable | Type[DuckDbPersistable],
+        *args: Any,
+        **kwargs: Any,
     ) -> None:
         self.patch_asset(asset)
 
-    def load(self, asset: DuckDbAsset) -> None:
+    def load(self, asset: DuckDbPersistable) -> None:
         self.resource.load(asset)
 
-    def save(self, asset: DuckDbAsset) -> None:
+    def save(self, asset: DuckDbPersistable) -> None:
         self.resource.save(asset)

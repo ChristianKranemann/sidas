@@ -8,6 +8,38 @@ from croniter import croniter
 from pydantic import BaseModel, Field
 
 
+class MetaData(BaseModel):
+    updated_at: datetime = Field(default_factory=datetime.now)
+
+    def to_json(self) -> str:
+        """
+        Serialize the metadata instance to a JSON string.
+
+        Returns:
+            str: JSON representation of the metadata
+        """
+        return self.model_dump_json()
+
+    @classmethod
+    def from_json(cls, data: str) -> Self:
+        """
+        Create a metadata instance from a JSON string.
+
+        Args:
+            data: JSON string containing metadata
+
+        Returns:
+            Self: A new instance of the metadata class
+
+        Raises:
+            ValidationError: If the JSON data doesn't match the expected schema
+        """
+        return cls.model_validate_json(data)
+
+
+MetaDataType = TypeVar("MetaDataType", bound=MetaData)
+
+
 class AssetStatus(StrEnum):
     """
     Enumeration of possible states for an asset during its lifecycle.
@@ -22,6 +54,8 @@ class AssetStatus(StrEnum):
         PERSISTED: Asset has been successfully saved
     """
 
+    INITIALIZING = "INITIALIZING"
+    INITIALIZING_FAILED = "INITIALIZING_FAILED"
     INITIALIZED = "INITIALIZED"
     MATERIALIZING = "MATERIALIZING"
     MATERIALIZING_FAILED = "MATERIALIZING_FAILED"
@@ -31,7 +65,7 @@ class AssetStatus(StrEnum):
     PERSISTED = "PERSISTED"
 
 
-class MetaBase(BaseModel):
+class AssetMetaData(MetaData):
     """
     Base model for asset metadata that tracks processing status and timing information.
 
@@ -50,8 +84,9 @@ class MetaBase(BaseModel):
         updated_at: Timestamp of the last status update
     """
 
-    status: AssetStatus = AssetStatus.INITIALIZED
-    initialized_at: datetime = Field(default_factory=datetime.now)
+    status: AssetStatus = AssetStatus.INITIALIZING
+    initializing_started_at: datetime = Field(default_factory=datetime.now)
+    initializing_stopped_at: datetime | None = None
     materializing_started_at: datetime | None = None
     materializing_stopped_at: datetime | None = None
     persisting_started_at: datetime | None = None
@@ -76,8 +111,10 @@ class MetaBase(BaseModel):
         self.status = status
         timestamp = datetime.now()
         match status:
+            case AssetStatus.INITIALIZING_FAILED:
+                self.initializing_stopped_at = timestamp
             case AssetStatus.INITIALIZED:
-                self.initialized_at = timestamp
+                self.initializing_stopped_at = timestamp
             case AssetStatus.MATERIALIZING:
                 self.materializing_started_at = timestamp
             case AssetStatus.MATERIALIZING_FAILED:
@@ -111,6 +148,7 @@ class MetaBase(BaseModel):
             bool: True if the asset has an error, False otherwise.
         """
         return self.status in (
+            AssetStatus.INITIALIZING_FAILED,
             AssetStatus.MATERIALIZING_FAILED,
             AssetStatus.PERSISTING_FAILED,
         )
@@ -141,17 +179,20 @@ class MetaBase(BaseModel):
         return cls.model_validate_json(data)
 
 
+AssetMetaDataType = TypeVar("AssetMetaDataType", bound=AssetMetaData)
+
+
 class CoordinatorStatus(StrEnum):
     INITIALIZING = "INITIALIZED"
-    INITIALIZING_ERROR = "INITIALIZING_ERROR"
+    INITIALIZING_FAILED = "INITIALIZING_FAILED"
     INITIALIZED = "INITIALIZED"
 
     HYDRATING = "HYDRATING"
-    HYDRATING_ERROR = "HYDRATING_ERROR"
+    HYDRATING_FAILED = "HYDRATING_FAILED"
     HYDRATED = "HYDRATED"
 
     PROCESSING = "PROCESSING"
-    PROCESSING_ERROR = "PROCESSING_ERROR"
+    PROCESSING_FAILED = "PROCESSING_FAILED"
     PROCESSED = "PROCESSED"
 
     WAITING = "WAITING"
@@ -160,12 +201,12 @@ class CoordinatorStatus(StrEnum):
     TERMINATED = "TERMINATED"
 
 
-class CoordinatorMeta(BaseModel):
-    status: CoordinatorStatus = CoordinatorStatus.INITIALIZING
+class CoordinatorMetaData(MetaData):
     cron_expression: str
+    status: CoordinatorStatus = CoordinatorStatus.INITIALIZING
     next_schedule: datetime = Field(default_factory=datetime.now)
     initializing_started_at: datetime = Field(default_factory=datetime.now)
-    initializing_stoped_at: datetime | None = None
+    initializing_stopped_at: datetime | None = None
     hydrating_started_at: datetime | None = None
     hydrating_stopped_at: datetime | None = None
     processing_started_at: datetime | None = None
@@ -184,21 +225,21 @@ class CoordinatorMeta(BaseModel):
         timestamp = datetime.now()
         self.status = status
         match status:
-            case CoordinatorStatus.INITIALIZING_ERROR:
-                self.initializing_stoped_at = timestamp
+            case CoordinatorStatus.INITIALIZING_FAILED:
+                self.initializing_stopped_at = timestamp
             case CoordinatorStatus.INITIALIZED:
-                self.initializing_stoped_at = timestamp
+                self.initializing_stopped_at = timestamp
 
             case CoordinatorStatus.HYDRATING:
                 self.hydrating_started_at = timestamp
-            case CoordinatorStatus.HYDRATING_ERROR:
+            case CoordinatorStatus.HYDRATING_FAILED:
                 self.hydrating_stopped_at = timestamp
             case CoordinatorStatus.HYDRATED:
                 self.hydrating_stopped_at = timestamp
 
             case CoordinatorStatus.PROCESSING:
                 self.processing_started_at = timestamp
-            case CoordinatorStatus.PROCESSING_ERROR:
+            case CoordinatorStatus.PROCESSING_FAILED:
                 self.processing_stopped_at = timestamp
             case CoordinatorStatus.PROCESSED:
                 self.processing_stopped_at = timestamp
@@ -227,9 +268,9 @@ class CoordinatorMeta(BaseModel):
 
     def has_error(self) -> bool:
         return self.status in (
-            CoordinatorStatus.INITIALIZING_ERROR,
-            CoordinatorStatus.HYDRATING_ERROR,
-            CoordinatorStatus.PROCESSING_ERROR,
+            CoordinatorStatus.INITIALIZING_FAILED,
+            CoordinatorStatus.HYDRATING_FAILED,
+            CoordinatorStatus.PROCESSING_FAILED,
         )
 
     def terminate(self) -> None:
@@ -243,4 +284,4 @@ class CoordinatorMeta(BaseModel):
         return cls.model_validate_json(data)
 
 
-AssetMeta = TypeVar("AssetMeta", bound=MetaBase)
+CoordinatorMetaDataType = TypeVar("CoordinatorMetaDataType", bound=CoordinatorMetaData)

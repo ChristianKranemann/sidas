@@ -1,15 +1,19 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Type
 
-from sidas.core import DataPersister, DefaultAsset
+from sqlalchemy import Table
 
-from ..assets.sql_asset import SqlAsset, SqlAssetType, SqlTableAsset
+from sidas.core import DataPersistableProtocol, DataPersister
+
+from ..assets.sql_asset import SqlAsset, SqlTableAsset
 from ..resources.databases import DatabaseResource
+
+SqlPersistable = DataPersistableProtocol[Table]
 
 
 class SqlPersisterInvalidAsset(Exception):
-    def __init__(self, asset: DefaultAsset) -> None:
+    def __init__(self, asset: SqlPersistable) -> None:
         message = f"Asset {asset.asset_id()} is not of type SqlAsset"
         super().__init__(message)
 
@@ -21,13 +25,13 @@ class SqlPersister(DataPersister):
 
     def register(
         self,
-        asset: SqlAsset | SqlAssetType,
+        asset: SqlPersistable | Type[SqlPersistable],
         *args: Any,
         **kwargs: Any,
     ) -> None:
         self.patch_asset(asset)
 
-    def load(self, asset: DefaultAsset) -> None:
+    def load(self, asset: SqlPersistable) -> None:
         if not isinstance(asset, SqlAsset):
             raise SqlPersisterInvalidAsset(asset)
 
@@ -37,7 +41,7 @@ class SqlPersister(DataPersister):
 
         asset.data = asset.get_table()
 
-    def save(self, asset: DefaultAsset) -> None:
+    def save(self, asset: SqlPersistable) -> None:
         if not isinstance(asset, SqlAsset):
             raise SqlPersisterInvalidAsset(asset)
 

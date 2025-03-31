@@ -7,14 +7,14 @@ from typing import Any, Callable, Type, cast, get_type_hints
 
 from ...core import (
     AssetData,
+    AssetMetaData,
     AssetStatus,
     BaseAsset,
     DefaultAsset,
-    MetaBase,
 )
 
 
-class DownstreamAssetMetadata(MetaBase):
+class DownstreamAssetMetadata(AssetMetaData):
     """
     Contains metadata for downstream assets, detailing upstream dependencies and the refresh method.
 

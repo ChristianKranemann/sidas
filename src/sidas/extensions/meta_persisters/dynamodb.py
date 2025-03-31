@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Type
 
-from sidas.core import DefaultAsset, MetaDataNotStoredException, MetaPersister
-
 if TYPE_CHECKING:
     from types_boto3_dynamodb.service_resource import Table
 else:
     Table = object
 
+from ...core import MetaPersistable, MetaPersister
+from ...core.exceptions import MetaDataNotStoredException
 from ..resources.aws import AwsAccount
 
 PRIMARY_ID_KEY = "asset_id"
@@ -23,18 +23,18 @@ class DynamoDbMetadataStore(MetaPersister):
         return self.account.session().resource("dynamodb").Table(self.table_name)
 
     def register(
-        self, *asset: DefaultAsset | Type[DefaultAsset], **kwargs: Any
+        self, *asset: MetaPersistable | Type[MetaPersistable], **kwargs: Any
     ) -> None:
         for a in asset:
             self.patch_asset(a)
 
-    def save(self, asset: DefaultAsset) -> None:
+    def save(self, asset: MetaPersistable) -> None:
         asset_id = str(asset.asset_id())
         data = asset.meta.to_json()
         item = {PRIMARY_ID_KEY: asset_id, "data": data}
         self.get_table().put_item(Item=item)
 
-    def load(self, asset: DefaultAsset) -> None:
+    def load(self, asset: MetaPersistable) -> None:
         asset_id = str(asset.asset_id())
         response = self.get_table().get_item(Key={PRIMARY_ID_KEY: asset_id})
         if "Item" not in response:

@@ -1,4 +1,3 @@
-from pathlib import PurePath
 from typing import Any, Type
 from unittest.mock import patch
 
@@ -7,78 +6,52 @@ import pytest
 # Assuming the module is named asset_system
 from sidas.core import (
     AssetId,
+    AssetMetaData,
     AssetNotRegisteredInDataPersister,
     AssetNotRegisteredInMetaPersister,
     AssetStatus,
     BaseAsset,
+    DataPersistable,
     DataPersister,
-    DefaultAsset,
-    MetaBase,
     MetaDataNotStoredException,
+    MetaPersistable,
     MetaPersister,
 )
 
 
-class TestAssetId:
-    def test_asset_id_creation(self):
-        asset_id = AssetId("test.asset.id")
-        assert asset_id == "test.asset.id"
-        assert isinstance(asset_id, str)
-
-    def test_as_path_conversion(self):
-        asset_id = AssetId("test.asset.id")
-        path = asset_id.as_path()
-        assert isinstance(path, PurePath)
-        assert str(path) == "test/asset/id"
-
-    def test_empty_asset_id(self):
-        asset_id = AssetId("")
-        assert asset_id.as_path() == PurePath()
-
-    def test_as_path_with_suffixconversion(self):
-        asset_id = AssetId("test.asset.id")
-        path = asset_id.as_path(suffix="example")
-        assert isinstance(path, PurePath)
-        assert str(path) == "test/asset/id.example"
-
-        path = asset_id.as_path(suffix=".example")
-        assert isinstance(path, PurePath)
-        assert str(path) == "test/asset/id.example"
-
-
 class MockDataPersister(DataPersister):
     def __init__(self):
-        self.registered_assets = set()
-        self.saved_data = {}
-        self.loaded_data = {}
+        self.registered_assets: set[Type[DataPersistable]] = set()
+        self.saved_data: dict[str, Any] = {}
+        self.loaded_data: dict[str, Any] = {}
 
-    def register(self, asset: Type[DefaultAsset], *args: Any, **kwargs: Any) -> None:
+    def register(self, asset: Type[DataPersistable], *args: Any, **kwargs: Any) -> None:
         self.registered_assets.add(asset)
         self.patch_asset(asset)
 
-    def save(self, asset: DefaultAsset) -> None:
+    def save(self, asset: DataPersistable) -> None:
         self.saved_data[asset.asset_id()] = asset.data
 
-    def load(self, asset: DefaultAsset) -> None:
+    def load(self, asset: DataPersistable) -> None:
         if asset.asset_id() in self.saved_data:
             asset.data = self.saved_data[asset.asset_id()]
         else:
             raise Exception("Data not found")
 
 
-class MetaBasePersister(MetaPersister):
+class AssetMetaDataPersister(MetaPersister):
     def __init__(self):
         self.registered_assets = set()
         self.saved_meta = {}
 
-    def register(self, asset: Type[DefaultAsset], *args: Any, **kwargs: Any) -> None:
+    def register(self, asset: Type[MetaPersistable], *args: Any, **kwargs: Any) -> None:
         self.registered_assets.add(asset)
         self.patch_asset(asset)
 
-    def save(self, asset: DefaultAsset) -> None:
+    def save(self, asset: MetaPersistable) -> None:
         self.saved_meta[asset.asset_id()] = asset.meta
 
-    def load(self, asset: DefaultAsset) -> None:
+    def load(self, asset: MetaPersistable) -> None:
         if asset.asset_id() in self.saved_meta:
             asset.meta = self.saved_meta[asset.asset_id()]
         else:
@@ -88,7 +61,7 @@ class MetaBasePersister(MetaPersister):
 TEST_ASSET_DATA = "my data"
 
 
-class TestAsset(BaseAsset[MetaBase, str]):
+class TestAsset(BaseAsset[AssetMetaData, str]):
     asset_identifier = AssetId("test.asset")
 
     def __init__(self):
@@ -97,8 +70,8 @@ class TestAsset(BaseAsset[MetaBase, str]):
     def transformation(self) -> str:
         return TEST_ASSET_DATA
 
-    def set_default_meta(self) -> MetaBase:
-        return MetaBase()
+    def set_default_meta(self) -> AssetMetaData:
+        return AssetMetaData()
 
     def execute_transformation(self) -> str:
         return self.transformation()
@@ -121,28 +94,28 @@ class TestBaseAsset:
         assert BaseAsset.assets[AssetId("test.asset")] is asset
 
     def test_meta_type(self):
-        assert TestAsset.meta_type() == MetaBase
+        assert TestAsset.meta_type() == AssetMetaData
 
     def test_data_type(self):
-        assert TestAsset.data_type() == str
+        assert TestAsset.data_type() is str
 
     def test_hydrate_new_asset(self):
         asset = TestAsset()
-        meta_persister = MetaBasePersister()
+        meta_persister = AssetMetaDataPersister()
         meta_persister.register(TestAsset)
 
         asset.hydrate()
-        assert isinstance(asset.meta, MetaBase)
+        assert isinstance(asset.meta, AssetMetaData)
         assert asset.meta.status == AssetStatus.INITIALIZED
         assert AssetId("test.asset") in meta_persister.saved_meta
 
     def test_hydrate_existing_asset(self):
         asset = TestAsset()
-        meta_persister = MetaBasePersister()
+        meta_persister = AssetMetaDataPersister()
         meta_persister.register(TestAsset)
 
         # Pre-save metadata
-        existing_meta = MetaBase()
+        existing_meta = AssetMetaData()
         existing_meta.update_status(AssetStatus.MATERIALIZED)
         meta_persister.saved_meta[AssetId("test.asset")] = existing_meta
 
@@ -152,14 +125,14 @@ class TestBaseAsset:
 
     def test_materialize_success(self):
         asset = TestAsset()
-        meta_persister = MetaBasePersister()
+        meta_persister = AssetMetaDataPersister()
         data_persister = MockDataPersister()
 
         meta_persister.register(TestAsset)
         data_persister.register(TestAsset)
 
         # Pre-save metadata
-        meta = MetaBase()
+        meta = AssetMetaData()
         meta_persister.saved_meta[AssetId("test.asset")] = meta
 
         asset.materialize()
@@ -172,14 +145,14 @@ class TestBaseAsset:
     @patch("logging.error")
     def test_materialize_transformation_failure(self, mock_log_error):
         asset = TestAsset()
-        meta_persister = MetaBasePersister()
+        meta_persister = AssetMetaDataPersister()
         data_persister = MockDataPersister()
 
         meta_persister.register(TestAsset)
         data_persister.register(TestAsset)
 
         # Pre-save metadata
-        meta = MetaBase()
+        meta = AssetMetaData()
         meta_persister.saved_meta[AssetId("test.asset")] = meta
 
         # Set up transformation to fail
@@ -200,14 +173,14 @@ class TestBaseAsset:
     @patch("logging.error")
     def test_materialize_persistence_failure(self, mock_log_error):
         asset = TestAsset()
-        meta_persister = MetaBasePersister()
+        meta_persister = AssetMetaDataPersister()
         data_persister = MockDataPersister()
 
         meta_persister.register(TestAsset)
         data_persister.register(TestAsset)
 
         # Pre-save metadata
-        meta = MetaBase()
+        meta = AssetMetaData()
         meta_persister.saved_meta[AssetId("test.asset")] = meta
 
         # Make saving data fail

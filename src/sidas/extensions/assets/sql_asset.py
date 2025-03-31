@@ -151,7 +151,7 @@ class SqlTableAsset(DownstreamAsset[Table]):
                 self.table_name(),
                 self.table_meta,
                 *(
-                    Column(c.name, c.type, primary_key=c.primary_key)
+                    Column(c.name, c.type, primary_key=c.primary_key)  # type: ignore
                     for c in selectable.selected_columns  # type: ignore
                 ),
             )

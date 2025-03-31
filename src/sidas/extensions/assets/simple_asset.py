@@ -2,23 +2,26 @@ from __future__ import annotations
 
 from typing import Type
 
-from ...core import AssetData, AssetStatus, BaseAsset, MetaBase
+from ...core import AssetData, AssetMetaData, AssetStatus, BaseAsset
 
 
-class SimpleAsset(BaseAsset[MetaBase, AssetData]):
+class SimpleAssetMetaData(AssetMetaData): ...
+
+
+class SimpleAsset(BaseAsset[SimpleAssetMetaData, AssetData]):
     """
     A one time Asset. It gets only persisted once.
     """
 
     @classmethod
-    def meta_type(cls) -> Type[MetaBase]:
-        return MetaBase
+    def meta_type(cls) -> Type[SimpleAssetMetaData]:
+        return SimpleAssetMetaData
 
     @classmethod
     def data_type(cls) -> Type[AssetData]:
         return cls.__orig_bases__[0].__args__[0]  # type: ignore
 
-    def set_default_meta(self) -> MetaBase:
+    def set_default_meta(self) -> SimpleAssetMetaData:
         """
         Initialize the default metadata for this asset.
 
@@ -27,7 +30,7 @@ class SimpleAsset(BaseAsset[MetaBase, AssetData]):
         Returns:
             MetaBase: The default metadata for this asset.
         """
-        return MetaBase()
+        return SimpleAssetMetaData()
 
     def execute_transformation(self) -> AssetData:
         """

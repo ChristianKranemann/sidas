@@ -6,10 +6,10 @@ from typing import Type
 
 from croniter import croniter
 
-from ...core import AssetData, AssetStatus, BaseAsset, MetaBase
+from ...core import AssetData, AssetMetaData, AssetStatus, BaseAsset
 
 
-class ScheduledAssetMetadata(MetaBase):
+class ScheduledAssetMetadata(AssetMetaData):
     """
     Metadata for scheduled assets, including the cron expression and the next scheduled time.
 

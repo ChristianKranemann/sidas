@@ -3,14 +3,11 @@ from typing import Any, Literal, Type
 
 import pandas as pd
 
-from ...core import (
-    BaseAsset,
-    DataPersister,
-)
+from ...core import DataPersistableProtocol, DataPersister
 from ..resources.databases import DatabaseResource
 from ..resources.file import FileResource
 
-PandasAsset = BaseAsset[Any, pd.DataFrame]
+PandasPersistable = DataPersistableProtocol[pd.DataFrame]
 
 
 @dataclass
@@ -18,7 +15,7 @@ class PandasPersisterFileResource:
     file: FileResource
     format: Literal["csv", "parquet", "json", "ndjson"] = "ndjson"
 
-    def save(self, asset: PandasAsset) -> None:
+    def save(self, asset: PandasPersistable) -> None:
         path = asset.asset_id().as_path(suffix=self.format)
 
         match self.format:
@@ -38,7 +35,7 @@ class PandasPersisterFileResource:
                 with self.file.open(path, "w") as f:
                     asset.data.to_json(f, orient="records", lines=True)
 
-    def load(self, asset: PandasAsset) -> None:
+    def load(self, asset: PandasPersistable) -> None:
         path = asset.asset_id().as_path(suffix=self.format)
 
         match self.format:
@@ -65,7 +62,7 @@ class PandasPersisterDBResource:
     if_table_exists: Literal["append", "replace", "fail"] = "replace"
     batch: int | None = None
 
-    def save(self, asset: PandasAsset) -> None:
+    def save(self, asset: PandasPersistable) -> None:
         name = asset.asset_id().as_path().name
         with self.db.get_connection() as con:
             asset.data.to_sql(
@@ -76,7 +73,7 @@ class PandasPersisterDBResource:
                 chunksize=self.batch,
             )
 
-    def load(self, asset: PandasAsset) -> None:
+    def load(self, asset: PandasPersistable) -> None:
         name = asset.asset_id().as_path().name
         with self.db.get_connection() as con:
             asset.data = pd.read_sql_table(name, con)
@@ -95,12 +92,15 @@ class PandasPersister(DataPersister):
         self.resource = resource
 
     def register(
-        self, asset: PandasAsset | Type[PandasAsset], *args: Any, **kwargs: Any
+        self,
+        asset: PandasPersistable | Type[PandasPersistable],
+        *args: Any,
+        **kwargs: Any,
     ) -> None:
         self.patch_asset(asset)
 
-    def load(self, asset: PandasAsset) -> None:
+    def load(self, asset: PandasPersistable) -> None:
         self.resource.load(asset)
 
-    def save(self, asset: PandasAsset) -> None:
+    def save(self, asset: PandasPersistable) -> None:
         self.resource.save(asset)

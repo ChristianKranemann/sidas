@@ -2,189 +2,22 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from pathlib import PurePath
-from typing import Any, ClassVar, Generic, Type, TypeVar
+from typing import Any, ClassVar, Type
 
+from .asset_id import AssetId
+from .data_persister import AssetData, DataPersistableProtocol
 from .exceptions import (
     AssetNotRegisteredInDataPersister,
     AssetNotRegisteredInMetaPersister,
     MetaDataNotStoredException,
 )
-from .meta import AssetMeta, AssetStatus
-
-AssetData = TypeVar("AssetData")
-
-
-class AssetId(str):
-    """
-    A string-based identifier for assets that can be converted to a filesystem path.
-
-    AssetId extends the str class to provide additional functionality for working with
-    asset identifiers, particularly the ability to convert dot-separated identifiers
-    into filesystem paths.
-
-    Examples:
-        >>> asset_id = AssetId("my.asset.id")
-        >>> asset_id.as_path()
-        PurePath('my/asset/id')
-    """
-
-    def as_path(self, suffix: str | None = None) -> PurePath:
-        """
-        Convert the dot-separated asset ID into a filesystem path.
-
-        Returns:
-            PurePath: A path object where each component is a part of the dot-separated ID
-        """
-
-        path = PurePath(*self.split("."))
-        if suffix is not None:
-            if suffix.startswith("."):
-                path = path.with_suffix(suffix)
-            else:
-                path = path.with_suffix("." + suffix)
-        return path
+from .meta import AssetMetaDataType, AssetStatus
+from .meta_persister import MetaPersistableProtocol
 
 
-class DataPersister(ABC):
-    """
-    Abstract base class defining the interface for persisting asset data.
-
-    DataPersister provides the core functionality for registering, saving, and loading
-    asset data. Implementations of this class handle the actual storage and retrieval
-    operations for asset data.
-    """
-
-    @abstractmethod
-    def register(
-        self, asset: DefaultAsset | Type[DefaultAsset], *args: Any, **kwargs: Any
-    ) -> None:
-        """
-        Registers an asset type with the data persister.
-
-        This method should be implemented to configure how the persister will handle
-        a specific asset type, including setting up any necessary storage mechanisms.
-
-        Args:
-            asset: The asset class to register
-            *args: Additional positional arguments for the registration process
-            **kwargs: Additional keyword arguments for the registration process
-        """
-
-    @abstractmethod
-    def save(self, asset: DefaultAsset) -> None:
-        """
-        Save the data of the given asset.
-
-        This method should be implemented to store the asset's data in the underlying
-        persistence system.
-
-        Args:
-            asset: The asset instance whose data should be saved
-        """
-        ...
-
-    @abstractmethod
-    def load(self, asset: DefaultAsset) -> None:
-        """
-        Load the data for the given asset.
-
-        This method should be implemented to retrieve the asset's data from the underlying
-        persistence system and update the asset's data attribute.
-
-        Args:
-            asset: The asset instance whose data should be loaded
-        """
-        ...
-
-    def patch_asset(self, asset: DefaultAsset | Type[DefaultAsset]) -> None:
-        """
-        Link the load and save methods to the asset class.
-
-        This method monkey-patches the asset class to use this persister's load and save
-        methods. This should be called in the register method.
-
-        Args:
-            asset: The asset class to update with load and save methods
-        """
-        if isinstance(asset, BaseAsset):
-            asset.__class__.save_data = lambda asset: self.load(asset)  # type: ignore
-            asset.__class__.save_data = lambda asset: self.save(asset)  # type: ignore
-        else:
-            asset.load_data = lambda asset: self.load(asset)  # type: ignore
-            asset.save_data = lambda asset: self.save(asset)  # type: ignore
-
-
-class MetaPersister(ABC):
-    """
-    Abstract base class defining the interface for persisting asset metadata.
-
-    MetaPersister provides the core functionality for registering, saving, and loading
-    asset metadata. Implementations of this class handle the actual storage and retrieval
-    operations for asset metadata.
-    """
-
-    @abstractmethod
-    def register(
-        self, *asset: DefaultAsset | Type[DefaultAsset], **kwargs: Any
-    ) -> None:
-        """
-        Registers an asset type with the metadata persister.
-
-        This method should be implemented to configure how the persister will handle
-        a specific asset type's metadata, including setting up any necessary storage mechanisms.
-
-        Args:
-            asset: The asset class to register
-            *args: Additional positional arguments for the registration process
-            **kwargs: Additional keyword arguments for the registration process
-        """
-
-    @abstractmethod
-    def save(self, asset: DefaultAsset) -> None:
-        """
-        Save the metadata for a particular asset.
-
-        This method should be implemented to store the asset's metadata in the underlying
-        persistence system.
-
-        Args:
-            asset: The asset instance whose metadata should be saved
-        """
-        ...
-
-    @abstractmethod
-    def load(self, asset: DefaultAsset) -> None:
-        """
-        Load the metadata for a particular asset.
-
-        This method should be implemented to retrieve the asset's metadata from the underlying
-        persistence system and update the asset's meta attribute.
-
-        Args:
-            asset: The asset instance whose metadata should be loaded
-        """
-        ...
-
-    def patch_asset(self, asset: DefaultAsset | Type[DefaultAsset]) -> None:
-        """
-        Link the load and save metadata methods to the asset class.
-
-        This method monkey-patches the asset class to use this persister's load and save
-        methods for metadata. This should be called in the register method.
-
-        Args:
-            asset: The asset class to update with load and save metadata methods
-        """
-        if isinstance(asset, BaseAsset):
-            asset.__class__.load_meta = lambda asset: self.load(asset)  # type: ignore
-            asset.__class__.save_meta = lambda asset: self.save(asset)  # type: ignore
-        else:
-            asset.load_meta = lambda asset: self.load(asset)  # type: ignore
-            asset.save_meta = lambda asset: self.save(asset)  # type: ignore
-
-
-class BaseAsset(Generic[AssetMeta, AssetData], ABC):
+class BaseAsset(
+    MetaPersistableProtocol[AssetMetaDataType], DataPersistableProtocol[AssetData], ABC
+):
     """
     Abstract base class for all assets in the system.
 
@@ -207,7 +40,7 @@ class BaseAsset(Generic[AssetMeta, AssetData], ABC):
     assets: ClassVar[dict[AssetId, BaseAsset[Any, Any]]] = {}
 
     asset_identifier: ClassVar[AssetId] | None = None
-    meta: AssetMeta
+    meta: AssetMetaDataType
     data: AssetData
     # transformation: Callable[..., Any]
 
@@ -227,14 +60,14 @@ class BaseAsset(Generic[AssetMeta, AssetData], ABC):
         return AssetId(f"{cls.__module__}.{cls.__name__}")
 
     @classmethod
-    def meta_type(cls) -> Type[AssetMeta]:
+    def meta_type(cls) -> Type[AssetMetaDataType]:
         """
         Get the metadata type for this asset class.
 
         Extracts the metadata type from the generic parameters of the class.
 
         Returns:
-            Type[AssetMeta]: The metadata type for this asset class
+            Type[AssetMetaBase]: The metadata type for this asset class
         """
         return cls.__orig_bases__[0].__args__[0]  # type: ignore
 
@@ -300,6 +133,7 @@ class BaseAsset(Generic[AssetMeta, AssetData], ABC):
             self.load_meta()
         except MetaDataNotStoredException:
             self.meta = self.set_default_meta()
+            self.meta.update_status(AssetStatus.INITIALIZED)
             self.save_meta()
 
     def load_meta(self) -> None:
@@ -353,7 +187,7 @@ class BaseAsset(Generic[AssetMeta, AssetData], ABC):
         """
 
     @abstractmethod
-    def set_default_meta(self) -> AssetMeta:
+    def set_default_meta(self) -> AssetMetaDataType:
         """
         Initialize the default metadata for this asset.
 
@@ -361,7 +195,7 @@ class BaseAsset(Generic[AssetMeta, AssetData], ABC):
         appropriate default metadata when no existing metadata is available.
 
         Returns:
-            AssetMeta: The default metadata for this asset
+            AssetMetaData: The default metadata for this asset
         """
 
     @abstractmethod

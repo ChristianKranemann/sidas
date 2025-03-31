@@ -13,7 +13,7 @@ from .exceptions import (
     MetaDataNotStoredException,
 )
 from .loader import load_assets
-from .meta import CoordinatorMeta, CoordinatorStatus
+from .meta import CoordinatorMetaData, CoordinatorStatus
 
 
 class Coordinator(ABC):
@@ -22,7 +22,8 @@ class Coordinator(ABC):
     The coordinator can start processing, load and save asset metadata, and materialize asset value.
     """
 
-    meta: CoordinatorMeta
+    meta: CoordinatorMetaData
+    asset_id = AssetId("Coordinator")
 
     @staticmethod
     def load_coordinator() -> Coordinator:
@@ -31,12 +32,14 @@ class Coordinator(ABC):
         except IndexError:
             raise Exception("Failed to load Coordinator Plugin")
 
-    def __init__(self, assets: Sequence[DefaultAsset], cron_expression=None) -> None:
+    def __init__(
+        self, assets: Sequence[DefaultAsset], cron_expression: str | None = None
+    ) -> None:
         self.assets = assets
         self.cron_expression = cron_expression or "*/30 * * * * *"
 
-    def set_default_meta(self) -> CoordinatorMeta:
-        return CoordinatorMeta(
+    def set_default_meta(self) -> CoordinatorMetaData:
+        return CoordinatorMetaData(
             cron_expression=self.cron_expression, next_schedule=datetime.now()
         )
 
@@ -102,7 +105,7 @@ class Coordinator(ABC):
             self.save_meta()
         except Exception as e:
             msg = f"Error validating assets: {e}"
-            self.meta.update_status(CoordinatorStatus.INITIALIZING_ERROR)
+            self.meta.update_status(CoordinatorStatus.INITIALIZING_FAILED)
             self.meta.update_log(msg)
             self.save_meta()
             return
@@ -115,7 +118,7 @@ class Coordinator(ABC):
             self.save_meta()
         except Exception as e:
             msg = f"Error hydrating assets: {e}"
-            self.meta.update_status(CoordinatorStatus.HYDRATING_ERROR)
+            self.meta.update_status(CoordinatorStatus.HYDRATING_FAILED)
             self.meta.update_log(msg)
             self.save_meta()
             return
@@ -135,7 +138,7 @@ class Coordinator(ABC):
 
                 except Exception as e:
                     msg = f"Error processing assets: {e}"
-                    self.meta.update_status(CoordinatorStatus.PROCESSING_ERROR)
+                    self.meta.update_status(CoordinatorStatus.PROCESSING_FAILED)
                     self.meta.update_log(msg)
                     self.save_meta()
 
