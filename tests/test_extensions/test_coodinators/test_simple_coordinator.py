@@ -1,8 +1,9 @@
+import os
 from typing import Any
 
 import pytest
 
-from sidas.core import AssetStatus, CoordinatorStatus
+from sidas.core import SIDA_COORDINATOR_MODULES_ENV_KEY, AssetStatus, CoordinatorStatus
 from sidas.extensions.assets import SimpleAsset
 from sidas.extensions.coordinators import SimpleCoordinator
 from sidas.extensions.data_persisters import InMemoryDataPersister
@@ -85,3 +86,9 @@ def test_check_assets() -> None:
 
     assert coordinator.meta.status == CoordinatorStatus.PROCESSED
     assert coordinator.assets[0].meta.status == AssetStatus.PERSISTED
+
+
+def test_import_instance() -> None:
+    os.environ[SIDA_COORDINATOR_MODULES_ENV_KEY] = __name__
+    coordinator = SimpleCoordinator.load_coordinator()
+    assert coordinator

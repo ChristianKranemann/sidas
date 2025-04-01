@@ -283,6 +283,12 @@ class CoordinatorMetaData(MetaData):
     def terminate(self) -> None:
         self.update_status(CoordinatorStatus.TERMINATING)
 
+    def terminating(self) -> bool:
+        return self.status in (
+            CoordinatorStatus.TERMINATING,
+            CoordinatorStatus.TERMINATED,
+        )
+
     def to_json(self) -> str:
         return self.model_dump_json()
 

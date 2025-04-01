@@ -44,7 +44,7 @@ class Coordinator(ABC):
     ) -> None:
         self.assets = assets
         self.cron_expression = cron_expression or "*/30 * * * * *"
-        self.meta = CoordinatorMetaData(cron_expression=self.cron_expression)
+        self.hydrate()
 
     def load_meta(self) -> None:
         raise CoordinatorNotRegisteredInMetaPersister()
@@ -87,6 +87,7 @@ class Coordinator(ABC):
             self.meta.update_status(CoordinatorStatus.HYDRATING_FAILED)
             self.meta.update_log(msg)
             self.save_meta()
+            logging.error(msg)
             return CoordinatorStatus.HYDRATING_FAILED
 
         self.meta.update_status(CoordinatorStatus.HYDRATED)
@@ -114,6 +115,7 @@ class Coordinator(ABC):
             self.meta.update_status(CoordinatorStatus.PROCESSING_FAILED)
             self.meta.update_log(msg)
             self.save_meta()
+            logging.error(msg)
             return CoordinatorStatus.PROCESSING_FAILED
 
         self.meta.update_status(CoordinatorStatus.PROCESSED)
@@ -122,16 +124,20 @@ class Coordinator(ABC):
         return CoordinatorStatus.PROCESSED
 
     def materialize(self, asset_id: AssetId) -> None:
+        self.load_meta()
+        if self.meta.terminating():
+            return
+
         asset = self.asset(asset_id)
         asset.hydrate()
         asset.materialize()
 
     def run(self) -> None:
-        status = self.hydrate()
+        status = self.hydrate_assets()
         if status != CoordinatorStatus.HYDRATED:
-            return
+            self.meta.terminate()
 
-        while self.meta.status != CoordinatorStatus.TERMINATING:
+        while not self.meta.terminating():
             if datetime.now() >= self.meta.next_schedule:
                 self.process_assets()
             time.sleep(10)
