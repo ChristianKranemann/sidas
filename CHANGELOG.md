@@ -1,3 +1,9 @@
+## 0.2.3 (2025-04-01)
+
+### Fix
+
+- resolve error in coordinator run
+
 ## 0.2.2 (2025-04-01)
 
 ### Fix
