@@ -1,3 +1,9 @@
+## 0.2.4 (2025-04-01)
+
+### Fix
+
+- fixing coordinator creation
+
 ## 0.2.3 (2025-04-01)
 
 ### Fix
