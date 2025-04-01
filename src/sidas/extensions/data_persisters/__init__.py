@@ -8,6 +8,7 @@ from .duckdb_persister import (
     DuckDbPersisterDBResource,
     DuckDbPersisterFileResource,
 )
+from .memory_persister import InMemoryDataPersister
 from .pandas_persister import (
     PandasPersister,
     PandasPersisterDBResource,
@@ -34,4 +35,5 @@ __all__ = [
     "PolarsPersisterDBResource",
     "PolarsPersisterFileResource",
     "SqlPersister",
+    "InMemoryDataPersister",
 ]

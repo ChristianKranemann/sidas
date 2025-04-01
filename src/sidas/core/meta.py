@@ -183,7 +183,7 @@ AssetMetaDataType = TypeVar("AssetMetaDataType", bound=AssetMetaData)
 
 
 class CoordinatorStatus(StrEnum):
-    INITIALIZING = "INITIALIZED"
+    INITIALIZING = "INITIALIZING"
     INITIALIZING_FAILED = "INITIALIZING_FAILED"
     INITIALIZED = "INITIALIZED"
 
@@ -222,8 +222,15 @@ class CoordinatorMetaData(MetaData):
         return self
 
     def update_status(self, status: CoordinatorStatus) -> Self:
-        timestamp = datetime.now()
+        # When the terminating flag is set, only allow switch to terminated or to initializung
+        if self.status == CoordinatorStatus.TERMINATING and status not in (
+            CoordinatorStatus.INITIALIZING,
+            CoordinatorStatus.TERMINATED,
+        ):
+            return self
+
         self.status = status
+        timestamp = datetime.now()
         match status:
             case CoordinatorStatus.INITIALIZING_FAILED:
                 self.initializing_stopped_at = timestamp

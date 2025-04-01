@@ -7,10 +7,9 @@ from ...core.coordinator import Coordinator
 
 class SimpleCoordinator(Coordinator):
     def __init__(
-        self,
-        assets: Sequence[DefaultAsset],
+        self, assets: Sequence[DefaultAsset], cron_expression: str | None = None
     ) -> None:
-        super().__init__(assets)
+        super().__init__(assets, cron_expression)
 
     def trigger_materialization(self, asset: DefaultAsset) -> None:
         asset_id = asset.asset_id()

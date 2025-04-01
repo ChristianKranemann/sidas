@@ -7,11 +7,12 @@ from .scheduled_asset import (
     ScheduledAsset,
     ScheduledAssetMetadata,
 )
-from .simple_asset import SimpleAsset
+from .simple_asset import SimpleAsset, SimpleAssetMetaData
 from .sql_asset import SqlDownstreamAsset, SqlScheduledAsset, SqlTableAsset
 
 __all__ = [
     "SimpleAsset",
+    "SimpleAssetMetaData",
     "DownstreamAsset",
     "DownstreamAssetRefreshMethod",
     "DownstreamAssetMetadata",

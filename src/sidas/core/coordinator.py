@@ -4,7 +4,7 @@ import logging
 import time
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Sequence
+from typing import Sequence, Type
 
 from .asset import AssetId, DefaultAsset
 from .exceptions import (
@@ -22,9 +22,6 @@ class Coordinator(ABC):
     The coordinator can start processing, load and save asset metadata, and materialize asset value.
     """
 
-    meta: CoordinatorMetaData
-    asset_id = AssetId("Coordinator")
-
     @staticmethod
     def load_coordinator() -> Coordinator:
         try:
@@ -32,16 +29,22 @@ class Coordinator(ABC):
         except IndexError:
             raise Exception("Failed to load Coordinator Plugin")
 
+    @classmethod
+    def meta_type(cls) -> Type[CoordinatorMetaData]:
+        return CoordinatorMetaData
+
+    @classmethod
+    def asset_id(cls) -> AssetId:
+        return AssetId("Coordinator")
+
+    meta: CoordinatorMetaData
+
     def __init__(
         self, assets: Sequence[DefaultAsset], cron_expression: str | None = None
     ) -> None:
         self.assets = assets
         self.cron_expression = cron_expression or "*/30 * * * * *"
-
-    def set_default_meta(self) -> CoordinatorMetaData:
-        return CoordinatorMetaData(
-            cron_expression=self.cron_expression, next_schedule=datetime.now()
-        )
+        self.meta = CoordinatorMetaData(cron_expression=self.cron_expression)
 
     def load_meta(self) -> None:
         raise CoordinatorNotRegisteredInMetaPersister()
@@ -53,7 +56,7 @@ class Coordinator(ABC):
         try:
             self.load_meta()
         except MetaDataNotStoredException:
-            self.meta = self.set_default_meta()
+            self.meta.update_status(CoordinatorStatus.INITIALIZED)
             self.save_meta()
 
     def asset(self, asset_id: AssetId) -> DefaultAsset:
@@ -70,26 +73,53 @@ class Coordinator(ABC):
         This method should be implemented by subclasses.
         """
 
-    def validate_assets(self) -> None:
-        for asset in self.assets:
-            asset.validate()
+    def hydrate_assets(self) -> CoordinatorStatus:
+        self.load_meta()
+        self.meta.update_status(CoordinatorStatus.HYDRATING)
+        self.save_meta()
 
-    def hydrate_assets(self) -> None:
-        for asset in self.assets:
-            logging.info("hydrating asset %s", asset.asset_id())
-            asset.hydrate()
+        try:
+            for asset in self.assets:
+                asset.validate()
+                asset.hydrate()
+        except Exception as e:
+            msg = f"Error validating assets: {e}"
+            self.meta.update_status(CoordinatorStatus.HYDRATING_FAILED)
+            self.meta.update_log(msg)
+            self.save_meta()
+            return CoordinatorStatus.HYDRATING_FAILED
 
-    def process_assets(self) -> None:
-        for asset in self.assets:
-            logging.info("checking asset %s", asset.asset_id())
+        self.meta.update_status(CoordinatorStatus.HYDRATED)
+        self.save_meta()
+        return CoordinatorStatus.HYDRATED
 
-            if not asset.can_materialize():
-                logging.info("asset %s cant materialize", asset.asset_id())
-                continue
+    def process_assets(self) -> CoordinatorStatus:
+        self.load_meta()
+        self.meta.update_status(CoordinatorStatus.PROCESSING)
+        self.save_meta()
 
-            logging.info("materializing asset %s", asset.asset_id())
-            asset.before_materialize()
-            self.trigger_materialization(asset)
+        try:
+            for asset in self.assets:
+                logging.info("checking asset %s", asset.asset_id())
+
+                if not asset.can_materialize():
+                    logging.info("asset %s cant materialize", asset.asset_id())
+                    continue
+
+                logging.info("materializing asset %s", asset.asset_id())
+                asset.before_materialize()
+                self.trigger_materialization(asset)
+        except Exception as e:
+            msg = f"Error processing assets: {e}"
+            self.meta.update_status(CoordinatorStatus.PROCESSING_FAILED)
+            self.meta.update_log(msg)
+            self.save_meta()
+            return CoordinatorStatus.PROCESSING_FAILED
+
+        self.meta.update_status(CoordinatorStatus.PROCESSED)
+        self.meta.update_next_schedule()
+        self.save_meta()
+        return CoordinatorStatus.PROCESSED
 
     def materialize(self, asset_id: AssetId) -> None:
         asset = self.asset(asset_id)
@@ -97,51 +127,13 @@ class Coordinator(ABC):
         asset.materialize()
 
     def run(self) -> None:
-        self.hydrate()
-
-        try:
-            self.validate_assets()
-            self.meta.update_status(CoordinatorStatus.INITIALIZED)
-            self.save_meta()
-        except Exception as e:
-            msg = f"Error validating assets: {e}"
-            self.meta.update_status(CoordinatorStatus.INITIALIZING_FAILED)
-            self.meta.update_log(msg)
-            self.save_meta()
-            return
-
-        self.meta.update_status(CoordinatorStatus.HYDRATING)
-        self.save_meta()
-        try:
-            self.hydrate_assets()
-            self.meta.update_status(CoordinatorStatus.HYDRATED)
-            self.save_meta()
-        except Exception as e:
-            msg = f"Error hydrating assets: {e}"
-            self.meta.update_status(CoordinatorStatus.HYDRATING_FAILED)
-            self.meta.update_log(msg)
-            self.save_meta()
+        status = self.hydrate()
+        if status != CoordinatorStatus.HYDRATED:
             return
 
         while self.meta.status != CoordinatorStatus.TERMINATING:
             if datetime.now() >= self.meta.next_schedule:
-                self.meta.update_status(CoordinatorStatus.PROCESSING)
-                self.save_meta()
-
-                try:
-                    self.process_assets()
-
-                    # iterated through all assets without error, update the schedule
-                    self.meta.update_next_schedule()
-                    self.meta.update_status(CoordinatorStatus.PROCESSED)
-                    self.save_meta()
-
-                except Exception as e:
-                    msg = f"Error processing assets: {e}"
-                    self.meta.update_status(CoordinatorStatus.PROCESSING_FAILED)
-                    self.meta.update_log(msg)
-                    self.save_meta()
-
+                self.process_assets()
             time.sleep(10)
             self.load_meta()
 
