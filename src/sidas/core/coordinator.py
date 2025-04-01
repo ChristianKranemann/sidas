@@ -44,6 +44,7 @@ class Coordinator(ABC):
     ) -> None:
         self.assets = assets
         self.cron_expression = cron_expression or "*/30 * * * * *"
+        self.meta = CoordinatorMetaData(cron_expression=self.cron_expression)
         self.hydrate()
 
     def load_meta(self) -> None:
