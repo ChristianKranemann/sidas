@@ -87,7 +87,7 @@ class PolarsPersisterDBResource:
 
     def load(self, asset: PolarsPersistable) -> None:
         name = asset.asset_id().as_path().name
-        query = f"select * from {name};"
+        query = f'select * from "{name}";'
         with self.db.get_connection() as con:
             asset.data = pl.read_database(query, con)
 

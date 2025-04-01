@@ -141,6 +141,9 @@ class Coordinator(ABC):
         while not self.meta.terminating():
             if datetime.now() >= self.meta.next_schedule:
                 self.process_assets()
+                self.meta.update_status(CoordinatorStatus.WAITING)
+                self.save_meta()
+
             time.sleep(10)
             self.load_meta()
 
