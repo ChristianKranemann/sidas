@@ -153,6 +153,9 @@ class AssetMetaData(MetaData):
             AssetStatus.PERSISTING_FAILED,
         )
 
+    def has_persisted(self) -> bool:
+        return self.status in (AssetStatus.PERSISTED)
+
     def to_json(self) -> str:
         """
         Serialize the metadata instance to a JSON string.

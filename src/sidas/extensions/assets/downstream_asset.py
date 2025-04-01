@@ -5,13 +5,9 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any, Callable, Type, cast, get_type_hints
 
-from ...core import (
-    AssetData,
-    AssetMetaData,
-    AssetStatus,
-    BaseAsset,
-    DefaultAsset,
-)
+from ...core import AssetData, AssetMetaData, AssetStatus, BaseAsset
+
+UpstreamAssetType = BaseAsset[AssetMetaData, Any]
 
 
 class DownstreamAssetMetadata(AssetMetaData):
@@ -67,16 +63,16 @@ class DownstreamAsset(BaseAsset[DownstreamAssetMetadata, AssetData]):
         for upstream in self.upstream():
             upstream.validate()
 
-    def upstream(self) -> list[DefaultAsset]:
+    def upstream(self) -> list[UpstreamAssetType]:
         """
         Retrieves the upstream assets on which this asset depends.
 
         Returns:
-            list[DefaultAsset]: The list of upstream assets.
+            list[UpstreamAssetType]: The list of upstream assets.
         """
         hints = get_type_hints(self.transformation)
         hints.pop("return")
-        classes = cast(list[Type[DefaultAsset]], list(hints.values()))
+        classes = cast(list[Type[UpstreamAssetType]], list(hints.values()))
         return [self.assets[c.asset_id()] for c in classes]
 
     def set_default_meta(self) -> DownstreamAssetMetadata:
@@ -124,13 +120,13 @@ class DownstreamAsset(BaseAsset[DownstreamAssetMetadata, AssetData]):
             logging.info("can't materialize: materialization in progress")
             return False
 
-        # skip if not all upstreams have materialized
         upstream = self.upstream()
         upstream_meta = [u.meta for u in upstream]
 
-        upstream_persisted_at = [m.persisting_stopped_at for m in upstream_meta]
-        if any([t is None for t in upstream_persisted_at]):
-            logging.info("can't materialize: some upstream_persisted_at is None")
+        # skip if any upstream have not persisted
+        upstream_persisted = [u.meta.has_persisted() for u in upstream]
+        if not all(upstream_persisted):
+            logging.info("can't materialize: some upstream assets are not persisted")
             return False
 
         # if the asset has not materialized, do so now:
@@ -141,11 +137,13 @@ class DownstreamAsset(BaseAsset[DownstreamAssetMetadata, AssetData]):
         # else check if the upstream materialization dates are new enough
         # we know that the materializing_started_at and persisted_at are set
         # because we did the asset status checks obove
-        this_last_started = cast(datetime, self.meta.materializing_stopped_at)
-        other_last_materialized = [
-            cast(datetime, m.materializing_stopped_at) for m in upstream_meta
+        upstream_persisted_at = [
+            m.persisting_stopped_at
+            for m in upstream_meta
+            if m.persisting_stopped_at is not None
         ]
-        is_newer = [this_last_started < t for t in other_last_materialized]
+        this_last_started = cast(datetime, self.meta.materializing_stopped_at)
+        is_newer = [this_last_started < t for t in upstream_persisted_at]
 
         if self.refresh_method == DownstreamAssetRefreshMethod.ALL_UPSTREAM_REFRESHED:
             if not all(is_newer):
