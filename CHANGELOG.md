@@ -1,3 +1,9 @@
+## 0.2.5 (2025-04-01)
+
+### Fix
+
+- fix error in downstream asset
+
 ## 0.2.4 (2025-04-01)
 
 ### Fix
