@@ -1,3 +1,9 @@
+## 0.2.6 (2025-04-01)
+
+### Fix
+
+- fixing select statements for postgres
+
 ## 0.2.5 (2025-04-01)
 
 ### Fix
