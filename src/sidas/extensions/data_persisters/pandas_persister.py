@@ -92,12 +92,10 @@ class PandasPersister(DataPersister):
         self.resource = resource
 
     def register(
-        self,
-        asset: PandasPersistable | Type[PandasPersistable],
-        *args: Any,
-        **kwargs: Any,
+        self, *asset: PandasPersistable | Type[PandasPersistable], **kwargs: Any
     ) -> None:
-        self.patch_asset(asset)
+        for a in asset:
+            self.patch_asset(a)
 
     def load(self, asset: PandasPersistable) -> None:
         self.resource.load(asset)

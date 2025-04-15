@@ -24,12 +24,10 @@ class SqlPersister(DataPersister):
         super().__init__()
 
     def register(
-        self,
-        asset: SqlPersistable | Type[SqlPersistable],
-        *args: Any,
-        **kwargs: Any,
+        self, *asset: SqlPersistable | Type[SqlPersistable], **kwargs: Any
     ) -> None:
-        self.patch_asset(asset)
+        for a in asset:
+            self.patch_asset(a)
 
     def load(self, asset: SqlPersistable) -> None:
         if not isinstance(asset, SqlAsset):

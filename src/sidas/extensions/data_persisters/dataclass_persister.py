@@ -117,12 +117,10 @@ class DataclassPersister(DataPersister):
         self.resource = resource
 
     def register(
-        self,
-        asset: DataclassPersistable | Type[DataclassPersistable],
-        *args: Any,
-        **kwargs: Any,
+        self, *asset: DataclassPersistable | Type[DataclassPersistable], **kwargs: Any
     ) -> None:
-        self.patch_asset(asset)
+        for a in asset:
+            self.patch_asset(a)
 
     def load(self, asset: DataclassPersistable) -> None:
         self.resource.load(asset)

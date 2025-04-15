@@ -105,12 +105,10 @@ class PolarsPersister(DataPersister):
         self.resource = resource
 
     def register(
-        self,
-        asset: PolarsPersistable | Type[PolarsPersistable],
-        *args: Any,
-        **kwargs: Any,
+        self, *asset: PolarsPersistable | Type[PolarsPersistable], **kwargs: Any
     ) -> None:
-        self.patch_asset(asset)
+        for a in asset:
+            self.patch_asset(a)
 
     def load(self, asset: PolarsPersistable) -> None:
         self.resource.load(asset)

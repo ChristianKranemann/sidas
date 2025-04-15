@@ -36,10 +36,7 @@ class DataPersister(ABC):
 
     @abstractmethod
     def register(
-        self,
-        asset: DataPersistable | Type[DataPersistable],
-        *args: Any,
-        **kwargs: Any,
+        self, *asset: DataPersistable | Type[DataPersistable], **kwargs: Any
     ) -> None:
         """
         Registers an asset type with the data persister.
@@ -48,8 +45,7 @@ class DataPersister(ABC):
         a specific asset type, including setting up any necessary storage mechanisms.
 
         Args:
-            asset: The asset class to register
-            *args: Additional positional arguments for the registration process
+            *asset: The asset class to register
             **kwargs: Additional keyword arguments for the registration process
         """
 

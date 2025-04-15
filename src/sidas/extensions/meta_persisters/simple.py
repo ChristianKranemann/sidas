@@ -8,9 +8,7 @@ class InMemoryMetaPersister(MetaPersister):
         self._data: dict[AssetId, str] = {}
 
     def register(
-        self,
-        *asset: MetaPersistable | Type[MetaPersistable],
-        **kwargs: Any,
+        self, *asset: MetaPersistable | Type[MetaPersistable], **kwargs: Any
     ) -> None:
         for a in asset:
             self.patch_asset(a)

@@ -99,12 +99,10 @@ class DuckDbPersister(DataPersister):
         self.resource = resource
 
     def register(
-        self,
-        asset: DuckDbPersistable | Type[DuckDbPersistable],
-        *args: Any,
-        **kwargs: Any,
+        self, *asset: DuckDbPersistable | Type[DuckDbPersistable], **kwargs: Any
     ) -> None:
-        self.patch_asset(asset)
+        for a in asset:
+            self.patch_asset(a)
 
     def load(self, asset: DuckDbPersistable) -> None:
         self.resource.load(asset)
