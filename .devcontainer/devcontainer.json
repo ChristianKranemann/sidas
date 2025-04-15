@@ -1,8 +1,6 @@
 {
 	"name": "SIDA",
-	"build": {
-		"dockerfile": "Dockerfile"
-	},
+	"image": "ghcr.io/astral-sh/uv:python3.13-bookworm",
 	"postCreateCommand": "sh ./.devcontainer/postCreateCommand.sh",
 	"customizations": {
 		"vscode": {
@@ -14,6 +12,7 @@
 		}
 	},
 	"mounts": [
-		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/vscode/.ssh,type=bind,readonly"
-		]
+		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.gitconfig,target=/root/.gitconfig,type=bind,readonly",
+		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/root/.ssh,type=bind,readonly"
+	]
 }
