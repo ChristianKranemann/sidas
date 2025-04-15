@@ -1,8 +1,10 @@
+from sidas.core import AssetStatus
 from sidas.extensions.assets.downstream_asset import (
     DownstreamAsset,
     DownstreamAssetMetadata,
     DownstreamAssetRefreshMethod,
 )
+from sidas.extensions.data_persisters import InMemoryDataPersister
 from sidas.extensions.meta_persisters import InMemoryMetaPersister
 
 
@@ -57,3 +59,74 @@ def test_transformation():
     c = C()
     b.data = 1
     assert c.transformation(b) == 2
+
+
+def test_persisting() -> None:
+    mp = InMemoryMetaPersister()
+    dp = InMemoryDataPersister()
+
+    mp.register(A, B, C)
+    dp.register(A, B, C)
+
+    a = A()
+    b = B()
+    c = C()
+
+    a.hydrate()
+    b.hydrate()
+    c.hydrate()
+
+    a.materialize()
+    b.materialize()
+    c.materialize()
+    assert a.meta.status == AssetStatus.PERSISTED
+    assert b.meta.status == AssetStatus.PERSISTED
+    assert c.meta.status == AssetStatus.PERSISTED
+    assert a.data == 1
+    assert b.data == 2
+    assert c.data == 3
+
+
+def test_persisting_2() -> None:
+    mp = InMemoryMetaPersister()
+    dp = InMemoryDataPersister()
+
+    a = A()
+    b = B()
+    c = C()
+
+    mp.register(a, b, c)
+    dp.register(a, b, c)
+
+    a.hydrate()
+    b.hydrate()
+    c.hydrate()
+
+    a.materialize()
+    b.materialize()
+    c.materialize()
+    assert a.meta.status == AssetStatus.PERSISTED
+    assert b.meta.status == AssetStatus.PERSISTED
+    assert c.meta.status == AssetStatus.PERSISTED
+    assert a.data == 1
+    assert b.data == 2
+    assert c.data == 3
+
+
+def test_persisting_as_list() -> None:
+    mp = InMemoryMetaPersister()
+    dp = InMemoryDataPersister()
+
+    assets = [A(), B(), C()]
+    dp.register(*assets)
+    mp.register(*assets)
+
+    [a.hydrate() for a in assets]
+    [a.materialize() for a in assets]
+
+    assert assets[0].meta.status == AssetStatus.PERSISTED
+    assert assets[1].meta.status == AssetStatus.PERSISTED
+    assert assets[2].meta.status == AssetStatus.PERSISTED
+    assert assets[0].data == 1
+    assert assets[1].data == 2
+    assert assets[2].data == 3

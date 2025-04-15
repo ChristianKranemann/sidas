@@ -86,7 +86,7 @@ class DataPersister(ABC):
             asset: The asset class to update with load and save methods
         """
         if not inspect.isclass(asset):
-            asset.__class__.save_data = lambda asset: self.load(asset)  # type: ignore
+            asset.__class__.load_data = lambda asset: self.load(asset)  # type: ignore
             asset.__class__.save_data = lambda asset: self.save(asset)  # type: ignore
         else:
             asset.load_data = lambda asset: self.load(asset)  # type: ignore
