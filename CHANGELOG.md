@@ -1,3 +1,9 @@
+## 0.2.8 (2025-04-15)
+
+### Fix
+
+- fixed bug in data persister patch function that did not patch the load_data method
+
 ## 0.2.7 (2025-04-15)
 
 ### Fix

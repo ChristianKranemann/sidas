@@ -16,13 +16,16 @@ class A(SimpleAsset[int]):
 
 
 def test_init() -> None:
+    meta_persister = InMemoryMetaPersister()
+    meta_persister.register(SimpleCoordinator)
+
     a = A()
     cron_expression = "test"
     coordinator = SimpleCoordinator([a], cron_expression=cron_expression)
     assert coordinator
     assert coordinator.assets == [a]
     assert coordinator.cron_expression == cron_expression
-    assert coordinator.meta.status == CoordinatorStatus.INITIALIZING
+    assert coordinator.meta.status == CoordinatorStatus.INITIALIZED
 
 
 def test_hydrate() -> None:
