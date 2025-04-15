@@ -1,3 +1,9 @@
+## 0.2.7 (2025-04-15)
+
+### Fix
+
+- Allow data and meta persisters to register multiple assets at once
+
 ## 0.2.6 (2025-04-01)
 
 ### Fix
