@@ -1,24 +1,24 @@
 from .downstream_asset import (
+    CumulatingDownstreamAsset,
     DownstreamAsset,
     DownstreamAssetMetadata,
     DownstreamAssetRefreshMethod,
 )
 from .scheduled_asset import (
+    CumulatingScheduledAsset,
     ScheduledAsset,
     ScheduledAssetMetadata,
 )
 from .simple_asset import SimpleAsset, SimpleAssetMetaData
-from .sql_asset import SqlDownstreamAsset, SqlScheduledAsset, SqlTableAsset
 
 __all__ = [
     "SimpleAsset",
     "SimpleAssetMetaData",
-    "DownstreamAsset",
-    "DownstreamAssetRefreshMethod",
     "DownstreamAssetMetadata",
-    "ScheduledAsset",
+    "DownstreamAssetRefreshMethod",
+    "DownstreamAsset",
+    "CumulatingDownstreamAsset",
     "ScheduledAssetMetadata",
-    "SqlDownstreamAsset",
-    "SqlScheduledAsset",
-    "SqlTableAsset",
+    "ScheduledAsset",
+    "CumulatingScheduledAsset",
 ]

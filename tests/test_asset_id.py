@@ -1,9 +1,6 @@
 from pathlib import PurePath
 
-# Assuming the module is named asset_system
-from sidas.core import (
-    AssetId,
-)
+from sidas.core import AssetId
 
 
 def test_asset_id_creation():

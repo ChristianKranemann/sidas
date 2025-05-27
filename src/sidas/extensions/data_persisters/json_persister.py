@@ -1,8 +1,7 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Literal, Type, get_args
+from typing import TYPE_CHECKING, Any, Literal, Type
 
 import polars as pl
-from dacite import from_dict
 
 from ...core import (
     AssetDataFailedToPersist,
@@ -16,11 +15,11 @@ from ..resources.file import FileResource
 if TYPE_CHECKING:
     from polars._typing import SchemaDict  # type:ignore
 
-DataclassPersistable = DataPersistableProtocol[list[Any]]
+DataclassPersistable = DataPersistableProtocol[list[dict[Any, Any]]]
 
 
 @dataclass
-class DataclassPersisterFileResource:
+class JsonPersisterFileResource:
     file: FileResource
     file_format: Literal["csv", "parquet", "json", "ndjson"] = "ndjson"
     strict: bool = False
@@ -68,12 +67,11 @@ class DataclassPersisterFileResource:
                 with self.file.open(path, "r") as f:
                     data = pl.read_ndjson(f, schema=schema)
 
-        asset_type = get_args(asset.data_type())[0]
-        asset.data = [from_dict(data_class=asset_type, data=d) for d in data.to_dicts()]
+        asset.data = [{**d} for d in data.to_dicts()]
 
 
 @dataclass
-class DataclassPersisterDBResource:
+class JsonPersisterDBResource:
     db: DatabaseResource
     if_table_exists: Literal["append", "replace", "fail"] = "replace"
     strict: bool = False
@@ -108,24 +106,19 @@ class DataclassPersisterDBResource:
         with self.db.get_connection() as con:
             data = pl.read_database(query, con, schema_overrides=schema)
 
-        asset_type = get_args(asset.data_type())[0]
-        asset.data = [from_dict(data_class=asset_type, data=d) for d in data.to_dicts()]
+        asset.data = [{**d} for d in data.to_dicts()]
 
 
-DataclassPersisterResource = (
-    DataclassPersisterFileResource | DataclassPersisterDBResource
-)
+JsonPersisterResource = JsonPersisterFileResource | JsonPersisterDBResource
 
 
-class DataclassPersister(DataPersister):
+class JsonPersister(DataPersister):
     """
     The InMemoryDataPersister provides functionality to register, load, save,
     and directly set data for assets, using an in-memory dictionary to store the data.
     """
 
-    def __init__(
-        self, resource: DataclassPersisterResource, strict: bool = False
-    ) -> None:
+    def __init__(self, resource: JsonPersisterResource, strict: bool = False) -> None:
         self.resource = resource
 
     def register(

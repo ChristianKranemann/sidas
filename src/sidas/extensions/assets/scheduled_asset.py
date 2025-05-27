@@ -7,6 +7,7 @@ from typing import Type
 from croniter import croniter
 
 from ...core import AssetData, AssetMetaData, AssetStatus, BaseAsset
+from ...core.exceptions import AssetDataFailedToRetrieve
 
 
 class ScheduledAssetMetadata(AssetMetaData):
@@ -53,15 +54,6 @@ class ScheduledAsset(BaseAsset[ScheduledAssetMetadata, AssetData]):
             cron_expression=self.cron_expression, next_schedule=datetime.now()
         )
 
-    def execute_transformation(self) -> AssetData:
-        """
-        Executes the transformation for the scheduled asset.
-
-        Returns:
-            AssetData: The transformed data for the scheduled asset.
-        """
-        return self.transformation()
-
     def can_materialize(self) -> bool:
         """
         Determines whether the scheduled asset can be materialized.
@@ -74,7 +66,13 @@ class ScheduledAsset(BaseAsset[ScheduledAssetMetadata, AssetData]):
             bool: True if the asset can be materialized, False otherwise.
         """
         self.load_meta()
-        cron_iterator = croniter(self.cron_expression)
+
+        # skip if asset is is initializing or could not initialize
+        if self.meta.status in (
+            AssetStatus.INITIALIZING,
+            AssetStatus.INITIALIZING_FAILED,
+        ):
+            return False
 
         # skip if asset is materializing
         if self.meta.in_progress():
@@ -83,10 +81,8 @@ class ScheduledAsset(BaseAsset[ScheduledAssetMetadata, AssetData]):
 
         # if the asset has not materialized, do so now:
         # update the next schedule
-        if self.meta.status != AssetStatus.PERSISTED:
+        if not self.meta.has_persisted():
             logging.info("asset not materialized yet, can materialize")
-            self.meta.next_schedule = cron_iterator.next(datetime)
-            self.save_meta()
             return True
 
         # skip if next schedule is in the future
@@ -94,6 +90,48 @@ class ScheduledAsset(BaseAsset[ScheduledAssetMetadata, AssetData]):
             logging.info("can't materialize: materialization not yet scheduled")
             return False
 
-        self.meta.next_schedule = cron_iterator.next(datetime)
-        self.save_meta()
         return True
+
+    def after_materialize(self) -> None:
+        """
+        If materialization was successfull, update the schedule.
+        """
+        self.load_meta()
+        if self.meta.has_persisted():
+            cron_iterator = croniter(self.cron_expression)
+            self.meta.next_schedule = cron_iterator.next(datetime)
+            self.save_meta()
+
+
+class CumulatingScheduledAsset(ScheduledAsset[AssetData]):
+    """
+    A scheduled asset that preserves and accumulates state between materializations.
+    Combines the time-based execution of ScheduledAsset with state preservation,
+    allowing each transformation to build upon previous results.
+
+    Attributes:
+        initial_data (AssetData): Base state used for the first materialization
+        cron_expression (str): Schedule for materialization in cron format
+    """
+
+    initial_data: AssetData
+
+    @classmethod
+    def meta_type(cls) -> Type[ScheduledAssetMetadata]:
+        return ScheduledAssetMetadata
+
+    @classmethod
+    def data_type(cls) -> Type[AssetData]:
+        return cls.__orig_bases__[0].__args__[0]  # type: ignore
+
+    def before_materialize(self) -> None:
+        """
+        Loads previous state or uses initial_data if none exists, then executes
+        the scheduled transformation
+        """
+        super().before_materialize()
+
+        try:
+            self.load_data()
+        except AssetDataFailedToRetrieve:
+            self.data = self.initial_data

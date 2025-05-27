@@ -1,11 +1,17 @@
 from typing import Any, Type
 
-from ...core import AssetId, AssetNotFoundException, DataPersistable, DataPersister
+from ...core import (
+    AssetDataFailedToPersist,
+    AssetDataFailedToRetrieve,
+    AssetId,
+    DataPersistable,
+    DataPersister,
+)
 
 
 class InMemoryDataPersister(DataPersister):
     def __init__(self) -> None:
-        self._data: dict[AssetId, Any] = {}
+        self.data: dict[AssetId, Any] = {}
 
     def register(
         self,
@@ -16,10 +22,13 @@ class InMemoryDataPersister(DataPersister):
             self.patch_asset(a)
 
     def save(self, asset: DataPersistable) -> None:
-        self._data[asset.asset_id()] = asset.data
+        try:
+            self.data[asset.asset_id()] = asset.data
+        except KeyError as e:
+            raise AssetDataFailedToPersist(asset.asset_id(), e) from e
 
     def load(self, asset: DataPersistable) -> None:
         try:
-            asset.data = self._data[asset.asset_id()]
-        except KeyError:
-            raise AssetNotFoundException()
+            asset.data = self.data[asset.asset_id()]
+        except KeyError as e:
+            raise AssetDataFailedToRetrieve(asset.asset_id(), e) from e

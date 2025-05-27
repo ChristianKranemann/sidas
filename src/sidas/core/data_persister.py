@@ -16,7 +16,7 @@ class DataPersistableProtocol(Protocol[AssetData]):
     def asset_id(cls) -> AssetId: ...
 
     @classmethod
-    def data_type(cls) -> Type[object]: ...
+    def data_type(cls) -> Type[AssetData]: ...
 
     def load_data(self) -> None: ...
     def save_data(self) -> None: ...
@@ -59,6 +59,9 @@ class DataPersister(ABC):
 
         Args:
             asset: The asset instance whose data should be saved
+
+        Raises:
+            AssetDataFailedToPersist: If the asset's data cannot be saved
         """
         ...
 
@@ -72,6 +75,9 @@ class DataPersister(ABC):
 
         Args:
             asset: The asset instance whose data should be loaded
+
+        Raises:
+            AssetDataFailedToRetrieve: If the asset's data cannot be loaded
         """
         ...
 

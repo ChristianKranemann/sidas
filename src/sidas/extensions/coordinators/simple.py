@@ -1,27 +1,21 @@
 import subprocess
-from typing import Sequence
 
 from ...core.asset import DefaultAsset
 from ...core.coordinator import Coordinator
 
 
 class SimpleCoordinator(Coordinator):
-    def __init__(
-        self, assets: Sequence[DefaultAsset], cron_expression: str | None = None
-    ) -> None:
-        super().__init__(assets, cron_expression)
+    def __init__(self, cron_expression: str | None = None) -> None:
+        super().__init__(cron_expression=cron_expression)
 
     def trigger_materialization(self, asset: DefaultAsset) -> None:
-        asset_id = asset.asset_id()
-        self.materialize(asset_id)
+        asset.in_trigger_materialization()
+        self.materialize(asset.asset_id())
 
 
 class SimpleThreadedCoordinator(Coordinator):
-    def __init__(
-        self,
-        assets: Sequence[DefaultAsset],
-    ) -> None:
-        super().__init__(assets)
+    def __init__(self, cron_expression: str | None = None) -> None:
+        super().__init__(cron_expression=cron_expression)
 
     def trigger_materialization(self, asset: DefaultAsset) -> None:
         asset_id = asset.asset_id()

@@ -1,6 +1,6 @@
 from typing import Any, Type
 
-from ...core import MetaDataNotStoredException, MetaPersistable, MetaPersister
+from ...core import MetaDataFailedToRetrieve, MetaPersistable, MetaPersister
 from ..resources.file import FileResource
 
 
@@ -23,7 +23,7 @@ class FileMetaPersister(MetaPersister):
     def load(self, asset: MetaPersistable) -> None:
         path = asset.asset_id().as_path()
         if not self.folder.exists(path):
-            raise MetaDataNotStoredException()
+            raise MetaDataFailedToRetrieve(asset.asset_id(), "File not found")
 
         with self.folder.open(path, mode="r") as f:
             data = f.read()

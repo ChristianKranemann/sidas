@@ -5,7 +5,13 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any, Callable, Type, cast, get_type_hints
 
-from ...core import AssetData, AssetMetaData, AssetStatus, BaseAsset
+from ...core import (
+    AssetData,
+    AssetDataFailedToRetrieve,
+    AssetMetaData,
+    AssetStatus,
+    BaseAsset,
+)
 
 UpstreamAssetType = BaseAsset[AssetMetaData, Any]
 
@@ -58,11 +64,6 @@ class DownstreamAsset(BaseAsset[DownstreamAssetMetadata, AssetData]):
     def data_type(cls) -> Type[AssetData]:
         return cls.__orig_bases__[0].__args__[0]  # type: ignore
 
-    def validate(self) -> None:
-        super().validate()
-        for upstream in self.upstream():
-            upstream.validate()
-
     def upstream(self) -> list[UpstreamAssetType]:
         """
         Retrieves the upstream assets on which this asset depends.
@@ -86,18 +87,6 @@ class DownstreamAsset(BaseAsset[DownstreamAssetMetadata, AssetData]):
             upstream=[str(a.asset_id()) for a in self.upstream()],
             refresh_method=self.refresh_method,
         )
-
-    def execute_transformation(self) -> AssetData:
-        """
-        Executes the transformation for the downstream asset.
-
-        Returns:
-            AssetData: The transformed data for the downstream asset.
-        """
-        upstream = self.upstream()
-        for asset in upstream:
-            asset.load_data()
-        return self.transformation(*upstream)
 
     def can_materialize(self) -> bool:
         """
@@ -142,8 +131,8 @@ class DownstreamAsset(BaseAsset[DownstreamAssetMetadata, AssetData]):
             for m in upstream_meta
             if m.persisting_stopped_at is not None
         ]
-        this_last_started = cast(datetime, self.meta.materializing_stopped_at)
-        is_newer = [this_last_started < t for t in upstream_persisted_at]
+        this_last_persisted = cast(datetime, self.meta.persisting_stopped_at)
+        is_newer = [this_last_persisted < t for t in upstream_persisted_at]
 
         if self.refresh_method == DownstreamAssetRefreshMethod.ALL_UPSTREAM_REFRESHED:
             if not all(is_newer):
@@ -160,3 +149,42 @@ class DownstreamAsset(BaseAsset[DownstreamAssetMetadata, AssetData]):
             return True
 
         return True
+
+    def before_materialize(self) -> None:
+        """
+        Ensuring all upstream assets are loaded.
+        """
+        super().before_materialize()
+
+        self.transformation_args = tuple(self.upstream())
+        for asset in self.transformation_args:
+            asset.load_data()
+
+
+class CumulatingDownstreamAsset(DownstreamAsset[AssetData]):
+    """
+    An asset that accumulates data from upstream assets.
+    Unlike DownstreamAsset which only processes current upstream data, CummulatingAsset
+    maintains an initial state and combines it with new upstream data during transformation.
+
+    Attributes:
+        initial_data (AssetData): The initial state used when no previous data exists
+    """
+
+    initial_data: AssetData
+
+    @classmethod
+    def meta_type(cls) -> Type[DownstreamAssetMetadata]:
+        return DownstreamAssetMetadata
+
+    @classmethod
+    def data_type(cls) -> Type[AssetData]:
+        return cls.__orig_bases__[0].__args__[0]  # type: ignore
+
+    def before_materialize(self) -> None:
+        super().before_materialize()
+
+        try:
+            self.load_data()
+        except AssetDataFailedToRetrieve:
+            self.data = self.initial_data

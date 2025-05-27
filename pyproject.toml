@@ -9,6 +9,7 @@ dependencies = [
     "boto3>=1.36.11",
     "click>=8.1.8",
     "croniter>=1.4.1",
+    "dacite>=1.9.2",
     "dataclasses-json>=0.6.7",
     "duckdb>=1.2.1",
     "pandas>=2.2.3",
@@ -38,6 +39,7 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
+    "freezegun>=1.5.1",
     "moto>=5.1.1",
     "pytest>=8.3.4",
     "types-boto3-custom",

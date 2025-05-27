@@ -59,6 +59,9 @@ class MetaPersister(ABC):
 
         Args:
             asset: The asset instance whose metadata should be saved
+
+        Raises:
+            MetaDataFailedToPersist: If metadata saving fails
         """
         ...
 
@@ -72,6 +75,9 @@ class MetaPersister(ABC):
 
         Args:
             asset: The asset instance whose metadata should be loaded
+
+        Raises:
+            MetaDataFailedToRetrieve: If metadata loading fails
         """
         ...
 

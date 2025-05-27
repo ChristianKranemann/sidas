@@ -56,6 +56,12 @@ class SimpleAsset(BaseAsset[SimpleAssetMetaData, AssetData]):
 
         self.load_meta()
 
+        if self.meta.status == AssetStatus.INITIALIZING:
+            return False
+
+        if self.meta.status == AssetStatus.INITIALIZING_FAILED:
+            return False
+
         if self.meta.in_progress():
             return False
 

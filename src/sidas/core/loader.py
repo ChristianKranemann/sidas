@@ -3,13 +3,15 @@ from __future__ import annotations
 import logging
 import os
 from importlib import import_module
-from typing import Type
+from typing import Any, Type, TypeVar
 
 from .config import SIDA_COORDINATOR_MODULES_ENV_KEY
 
+T = TypeVar("T")
+
 
 def load_assets[T](instance_type: Type[T]) -> list[T]:
-    assets = []
+    assets: list[T] = []
     module_names = os.environ[SIDA_COORDINATOR_MODULES_ENV_KEY].split(",")
 
     logging.info("##########################################################")
@@ -38,12 +40,16 @@ def load_assets[T](instance_type: Type[T]) -> list[T]:
                 continue
             if item == "__package__":
                 continue
-            element = getattr(module, item)
-            # logging.info(f"current element {item} of type {type(element)}: {element} ")
-            if isinstance(element, list):
-                for e in element:
-                    if isinstance(e, instance_type):
-                        assets.append(e)
+            element: Any = getattr(module, item)
+
+            if isinstance(element, (list, tuple, set)):
+                for entry in element:  # type: ignore[var-annotated]
+                    if isinstance(entry, instance_type):
+                        assets.append(entry)
+            if isinstance(element, dict):
+                for entry in element.values():  # type: ignore[var-annotated]
+                    if isinstance(entry, instance_type):
+                        assets.append(entry)
             if isinstance(element, instance_type):
                 assets.append(element)
     return assets

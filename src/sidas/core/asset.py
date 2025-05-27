@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import traceback
 from abc import ABC, abstractmethod
 from typing import Any, ClassVar, Type
 
@@ -9,7 +10,7 @@ from .data_persister import AssetData, DataPersistableProtocol
 from .exceptions import (
     AssetNotRegisteredInDataPersister,
     AssetNotRegisteredInMetaPersister,
-    MetaDataNotStoredException,
+    MetaDataFailedToRetrieve,
 )
 from .meta import AssetMetaDataType, AssetStatus
 from .meta_persister import MetaPersistableProtocol
@@ -42,7 +43,9 @@ class BaseAsset(
     asset_identifier: ClassVar[AssetId] | None = None
     meta: AssetMetaDataType
     data: AssetData
+
     # transformation: Callable[..., Any]
+    transformation_args: tuple[Any, ...] = ()
 
     @classmethod
     def asset_id(cls) -> AssetId:
@@ -91,50 +94,39 @@ class BaseAsset(
         """
         self.__class__.assets[self.asset_id()] = self
 
-    def validate(self) -> None:
-        logging.info("validating asset %s", self.asset_id())
-        if type(self).transformation == DefaultAsset.transformation:
-            raise Exception(
-                f"Asset {self.asset_id()} needs to implement transformation."
-            )
+    def initialize(self) -> None:
+        logging.info("initialize asset %s", self.asset_id())
 
-        if type(self).set_default_meta == DefaultAsset.set_default_meta:
-            raise Exception(
-                f"Asset {self.asset_id()} needs to implement set_default_meta."
-            )
-
-        if type(self).execute_transformation == DefaultAsset.execute_transformation:
-            raise Exception(
-                f"Asset {self.asset_id()} needs to implement execute_transformation."
-            )
-
-        if type(self).can_materialize == DefaultAsset.can_materialize:
-            raise Exception(
-                f"Asset {self.asset_id()}needs to implement can_materialize."
-            )
-
-        if type(self).save_meta == DefaultAsset.save_meta:
-            raise Exception(f"Asset {self.asset_id()} has no meta persister.")
-
-        if type(self).save_data == DefaultAsset.save_data:
-            raise Exception(f"Asset {self.asset_id()} has no data persister.")
-
-    def hydrate(self) -> None:
-        """
-        Initialize or load the asset's metadata.
-
-        Attempts to load existing metadata for the asset. If no metadata exists,
-        creates default metadata and saves it.
-
-        Raises:
-            MetaDataNotStoredException: If metadata loading fails
-        """
         try:
             self.load_meta()
-        except MetaDataNotStoredException:
+            self.meta = self.meta.update_status(AssetStatus.INITIALIZING)
+        except MetaDataFailedToRetrieve:
             self.meta = self.set_default_meta()
-            self.meta.update_status(AssetStatus.INITIALIZED)
+
+        self.save_meta()
+
+        # check if asset has a meta persister
+        if (
+            type(self).load_meta == DefaultAsset.load_meta
+            or type(self).save_meta == DefaultAsset.save_meta
+        ):
+            self.meta = self.meta.update_status(AssetStatus.INITIALIZING_FAILED)
             self.save_meta()
+
+            raise AssetNotRegisteredInMetaPersister(self.asset_id())
+
+        # check if asset has a data persister
+        if (
+            type(self).load_data == DefaultAsset.load_data
+            or type(self).save_data == DefaultAsset.save_data
+        ):
+            self.meta = self.meta.update_status(AssetStatus.INITIALIZING_FAILED)
+            self.save_meta()
+
+            raise AssetNotRegisteredInDataPersister(self.asset_id())
+
+        self.meta = self.meta.update_status(AssetStatus.INITIALIZED)
+        self.save_meta()
 
     def load_meta(self) -> None:
         """
@@ -145,7 +137,7 @@ class BaseAsset(
         Raises:
             AssetNotRegisteredInMetaPersister: If the asset is not registered with a meta persister
         """
-        raise AssetNotRegisteredInMetaPersister()
+        raise AssetNotRegisteredInMetaPersister(self.asset_id())
 
     def save_meta(self) -> None:
         """
@@ -156,7 +148,7 @@ class BaseAsset(
         Raises:
             AssetNotRegisteredInMetaPersister: If the asset is not registered with a meta persister
         """
-        raise AssetNotRegisteredInMetaPersister()
+        raise AssetNotRegisteredInMetaPersister(self.asset_id())
 
     def load_data(self) -> None:
         """
@@ -167,7 +159,7 @@ class BaseAsset(
         Raises:
             AssetNotRegisteredInDataPersister: If the asset is not registered with a data persister
         """
-        raise AssetNotRegisteredInDataPersister()
+        raise AssetNotRegisteredInDataPersister(self.asset_id())
 
     def save_data(self) -> None:
         """
@@ -178,7 +170,7 @@ class BaseAsset(
         Raises:
             AssetNotRegisteredInDataPersister: If the asset is not registered with a data persister
         """
-        raise AssetNotRegisteredInDataPersister()
+        raise AssetNotRegisteredInDataPersister(self.asset_id())
 
     @abstractmethod
     def transformation(self, *args: Any, **kwargs: Any) -> Any:
@@ -199,18 +191,6 @@ class BaseAsset(
         """
 
     @abstractmethod
-    def execute_transformation(self) -> AssetData:
-        """
-        Execute the transformation to generate this asset's data.
-
-        This method should be implemented by concrete asset classes to define
-        the logic for generating or transforming the asset's data.
-
-        Returns:
-            AssetData: The generated or transformed data for this asset
-        """
-
-    @abstractmethod
     def can_materialize(self) -> bool:
         """
         Check if this asset can be materialized.
@@ -222,41 +202,31 @@ class BaseAsset(
             bool: True if the asset can be materialized, False otherwise
         """
 
+    def in_trigger_materialization(self) -> None:
+        self.load_meta()
+        self.meta.update_status(AssetStatus.TRANSFORMING_KICKOFF)
+        self.save_meta()
+
     def before_materialize(self) -> None:
         """
         Prepare the asset for materialization.
-
-        Updates the asset's status to indicate that materialization is in progress.
         """
-        self.load_meta()
-        self.meta.update_status(AssetStatus.MATERIALIZING)
-        self.save_meta()
+        pass
 
     def materialize(self) -> None:
-        """
-        Materialize the asset by executing its transformation and persisting the result.
-
-        This method orchestrates the full materialization process:
-        1. Load the asset's metadata
-        2. Execute the transformation to generate data
-        3. Update the asset's status
-        4. Save the generated data
-
-        Any exceptions during transformation or persistence are caught, logged,
-        and reflected in the asset's status.
-        """
         self.load_meta()
+        self.meta.update_status(AssetStatus.TRANSFORMING)
+        self.save_meta()
 
         try:
-            self.data = self.execute_transformation()
-            self.meta.update_status(AssetStatus.MATERIALIZED)
+            self.data = self.transformation(*self.transformation_args)
+            self.meta.update_status(AssetStatus.TRANSFORMED)
             self.save_meta()
         except Exception as e:
-            msg = f"failed to materialize asset {self.asset_id()}: {e}"
+            msg = f"failed to transform asset {self.asset_id()}: {str(e)}\n{traceback.format_exc()}"
             logging.exception(msg)
-
             self.meta.update_log(msg)
-            self.meta.update_status(AssetStatus.MATERIALIZING_FAILED)
+            self.meta.update_status(AssetStatus.TRANSFORMING_FAILED)
             self.save_meta()
             return
 
@@ -268,12 +238,27 @@ class BaseAsset(
             self.meta.update_status(AssetStatus.PERSISTED)
             self.save_meta()
         except Exception as e:
-            msg = f"failed to persist asset {self.asset_id()}: {e}"
+            msg = f"failed to persist asset {self.asset_id()}: {str(e)}\n{traceback.format_exc()}"
             logging.exception(msg)
 
             self.meta.update_log(msg)
             self.meta.update_status(AssetStatus.PERSISTING_FAILED)
             self.save_meta()
+
+    def after_materialize(self) -> None:
+        """
+        Finalize the asset after materialization.
+        """
+        pass
+
+    def run_materialize_steps(self) -> None:
+        """
+        Helper method to run the materialization steps in order. Usefull for testing
+        or debugging.
+        """
+        self.before_materialize()
+        self.materialize()
+        self.after_materialize()
 
 
 # Type aliases for convenience

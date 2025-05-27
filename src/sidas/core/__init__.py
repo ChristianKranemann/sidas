@@ -9,10 +9,13 @@ from .data_persister import (
     DataPersister,
 )
 from .exceptions import (
+    AssetDataFailedToPersist,
+    AssetDataFailedToRetrieve,
     AssetNotFoundException,
     AssetNotRegisteredInDataPersister,
     AssetNotRegisteredInMetaPersister,
-    MetaDataNotStoredException,
+    MetaDataFailedToPersist,
+    MetaDataFailedToRetrieve,
 )
 from .meta import (
     AssetMetaData,
@@ -35,6 +38,12 @@ __all__ = [
     "DataPersister",
     "Coordinator",
     "AssetNotFoundException",
+    "AssetNotRegisteredInDataPersister",
+    "AssetNotRegisteredInMetaPersister",
+    "AssetDataFailedToPersist",
+    "AssetDataFailedToRetrieve",
+    "MetaDataFailedToRetrieve",
+    "MetaDataFailedToPersist",
     "AssetStatus",
     "MetaData",
     "MetaDataType",
@@ -42,9 +51,6 @@ __all__ = [
     "CoordinatorMetaData",
     "CoordinatorStatus",
     "SIDA_COORDINATOR_MODULES_ENV_KEY",
-    "MetaDataNotStoredException",
-    "AssetNotRegisteredInDataPersister",
-    "AssetNotRegisteredInMetaPersister",
     "DataPersistableProtocol",
     "MetaPersistableProtocol",
     "MetaPersistable",

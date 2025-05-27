@@ -19,7 +19,6 @@ from .polars_persister import (
     PolarsPersisterDBResource,
     PolarsPersisterFileResource,
 )
-from .sql_asset_persister import SqlPersister
 
 __all__ = [
     "DataclassPersister",
@@ -34,6 +33,5 @@ __all__ = [
     "PolarsPersister",
     "PolarsPersisterDBResource",
     "PolarsPersisterFileResource",
-    "SqlPersister",
     "InMemoryDataPersister",
 ]

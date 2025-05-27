@@ -8,7 +8,7 @@ else:
     Table = object
 
 from ...core import MetaPersistable, MetaPersister
-from ...core.exceptions import MetaDataNotStoredException
+from ...core.exceptions import MetaDataFailedToRetrieve
 from ..resources.aws import AwsAccount
 
 PRIMARY_ID_KEY = "asset_id"
@@ -38,7 +38,7 @@ class DynamoDbMetadataStore(MetaPersister):
         asset_id = str(asset.asset_id())
         response = self.get_table().get_item(Key={PRIMARY_ID_KEY: asset_id})
         if "Item" not in response:
-            raise MetaDataNotStoredException()
+            raise MetaDataFailedToRetrieve(asset.asset_id(), "Item not found")
         item = response["Item"]
         data: str = item["data"]  # type: ignore
 

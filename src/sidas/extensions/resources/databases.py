@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Iterator, Protocol, runtime_checkable
 
 from sqlalchemy import Connection, Engine, create_engine
@@ -13,7 +14,7 @@ class DatabaseResource(Protocol):
 
 
 class SqliteResource(DatabaseResource):
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: str | Path) -> None:
         self.path = path
 
     def get_engine(self) -> Engine:

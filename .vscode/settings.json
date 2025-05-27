@@ -31,9 +31,15 @@
   "python.testing.pytestArgs": ["."],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
-  "python.analysis.typeCheckingMode":"standard",
+  "python.analysis.typeCheckingMode":"strict",
   "python.analysis.exclude": [".venv"],
   "python.analysis.ignore": [".venv"],
-  "ruff.nativeServer": "on"
+  "ruff.nativeServer": "on",
+  "github.copilot.enable": {
+    "*": false,
+    "plaintext": false,
+    "markdown": false,
+    "scminput": false
+  }
 
 }

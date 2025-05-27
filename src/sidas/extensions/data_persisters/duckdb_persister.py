@@ -1,13 +1,20 @@
 from dataclasses import dataclass
-from typing import Any, Literal, Type
+from typing import TYPE_CHECKING, Any, Literal, Type
 
 import duckdb
 import polars as pl
 
-from ...core import DataPersistableProtocol, DataPersister
+from ...core import (
+    AssetDataFailedToPersist,
+    AssetDataFailedToRetrieve,
+    DataPersistableProtocol,
+    DataPersister,
+)
 from ..resources.databases import DatabaseResource
 from ..resources.file import FileResource
 
+if TYPE_CHECKING:
+    from polars._typing import SchemaDict  # type:ignore
 DuckDbPersistable = DataPersistableProtocol[duckdb.DuckDBPyRelation]
 
 
@@ -40,27 +47,32 @@ class DuckDbPersisterFileResource:
     def load(self, asset: DuckDbPersistable) -> None:
         path = asset.asset_id().as_path(suffix=self.format)
         name = asset.asset_id().as_path().name
+        schema: SchemaDict = asset.schema if hasattr(asset, "schema") else None  # type: ignore
+        columns = list(schema.keys()) if schema else None  # type: ignore
+
         match self.format:
             case "csv":
                 with self.file.open(path, "r") as f:
-                    data = pl.read_csv(f, separator=";")
+                    data = pl.read_csv(
+                        f, separator=";", schema=schema, truncate_ragged_lines=True
+                    )
 
             case "parquet":
                 with self.file.open(path, "rb") as f:
-                    data = pl.write_parquet(f)
+                    data = pl.read_parquet(
+                        f, schema=schema, allow_missing_columns=True, columns=columns
+                    )
 
             case "json":
                 with self.file.open(path, "r") as f:
-                    data = pl.read_json(f)
+                    data = pl.read_json(f, schema=schema)
 
             case "ndjson":
                 with self.file.open(path, "r") as f:
-                    data = pl.read_ndjson(f)
+                    data = pl.read_ndjson(f, schema=schema)
 
-        try:
-            asset.data = duckdb.sql(f"create table {name} as select * from data")
-        except duckdb.CatalogException:
-            asset.data = duckdb.sql("select * from data")
+        duckdb.register("__data__", data)
+        asset.data = duckdb.sql("select * from __data__")
 
 
 @dataclass
@@ -76,14 +88,24 @@ class DuckDbPersisterDBResource:
 
     def load(self, asset: DuckDbPersistable) -> None:
         name = asset.asset_id().as_path().name
+        schema: SchemaDict = asset.schema if hasattr(asset, "schema") else None  # type: ignore
+        columns = list(schema.keys()) if schema else None  # type: ignore
         query = f'select * from "{name}";'
-        with self.db.get_connection() as con:
-            data = pl.read_database(query, con)
 
-        try:
-            asset.data = duckdb.sql(f"create table {name} as select * from data")
-        except duckdb.CatalogException:
-            asset.data = duckdb.sql("select * from data")
+        with self.db.get_connection() as con:
+            data = pl.read_database(query, con, schema_overrides=schema)
+
+        if columns:
+            for c in data.columns:
+                if c not in columns:
+                    data = data.drop(c)
+
+            for c in columns:
+                if c not in data.columns:
+                    data = data.with_columns(pl.lit(None).alias(c))
+
+        duckdb.register("__data__", data)
+        asset.data = duckdb.sql("select * from __data__")
 
 
 DuckDbPersisterResource = DuckDbPersisterFileResource | DuckDbPersisterDBResource
@@ -104,8 +126,14 @@ class DuckDbPersister(DataPersister):
         for a in asset:
             self.patch_asset(a)
 
-    def load(self, asset: DuckDbPersistable) -> None:
-        self.resource.load(asset)
-
     def save(self, asset: DuckDbPersistable) -> None:
-        self.resource.save(asset)
+        try:
+            self.resource.save(asset)
+        except Exception as e:
+            raise AssetDataFailedToPersist(asset.asset_id(), e) from e
+
+    def load(self, asset: DuckDbPersistable) -> None:
+        try:
+            self.resource.load(asset)
+        except Exception as e:
+            raise AssetDataFailedToRetrieve(asset.asset_id(), e) from e
