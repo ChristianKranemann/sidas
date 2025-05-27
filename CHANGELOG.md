@@ -1,3 +1,9 @@
+## 0.2.9 (2025-05-27)
+
+### Fix
+
+- improving structure and tests
+
 ## 0.2.8 (2025-04-15)
 
 ### Fix
