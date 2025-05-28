@@ -71,8 +71,18 @@ class DuckDbPersisterFileResource:
                 with self.file.open(path, "r") as f:
                     data = pl.read_ndjson(f, schema=schema)
 
+        # register the data alias (only used to avoid unused variable hints)
         duckdb.register("__data__", data)
-        asset.data = duckdb.sql("select * from __data__")
+
+        # load the data into the asset.data
+        asset.data = duckdb.sql("select * from __data__;")
+
+        # load the dat into the duckdb context
+        try:
+            duckdb.sql(f"drop table {name};")
+        except duckdb.CatalogException:
+            pass
+        duckdb.sql(f"create table {name} as select * from __data__;")
 
 
 @dataclass
@@ -104,8 +114,18 @@ class DuckDbPersisterDBResource:
                 if c not in data.columns:
                     data = data.with_columns(pl.lit(None).alias(c))
 
+        # register the data alias (only used to avoid unused variable hints)
         duckdb.register("__data__", data)
-        asset.data = duckdb.sql("select * from __data__")
+
+        # load the data into the asset.data
+        asset.data = duckdb.sql("select * from __data__;")
+
+        # load the dat into the duckdb context
+        try:
+            duckdb.sql(f"drop table {name};")
+        except duckdb.CatalogException:
+            pass
+        duckdb.sql(f"create table {name} as select * from __data__;")
 
 
 DuckDbPersisterResource = DuckDbPersisterFileResource | DuckDbPersisterDBResource

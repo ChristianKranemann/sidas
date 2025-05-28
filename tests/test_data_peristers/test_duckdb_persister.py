@@ -90,6 +90,19 @@ def example_asset(
     return asset  # type: ignore
 
 
+def test_persist_multi_overwrite(persisters: list[DuckDbPersister]):
+    save_asset_1 = example_asset({"a": [10, 20]}, NO_SCHEMA)
+    save_asset_2 = example_asset({"a": [30, 40]}, NO_SCHEMA)
+    load_asset = example_asset({}, NO_SCHEMA)
+
+    for persister in persisters:
+        persister.save(save_asset_1)
+        persister.save(save_asset_2)
+        persister.load(load_asset)
+
+        assert save_asset_2.data.df().equals(load_asset.data.df())  # type: ignore
+
+
 def test_persist_no_schema(persisters: list[DuckDbPersister]):
     data = {"a": [10, 20]}
 
@@ -99,6 +112,9 @@ def test_persist_no_schema(persisters: list[DuckDbPersister]):
     for persister in persisters:
         persister.save(save_asset)
         persister.load(load_asset)
+
+        assert save_asset.data is not None
+        assert load_asset.data is not None
         assert save_asset.data.df().equals(load_asset.data.df())  # type: ignore
 
 
