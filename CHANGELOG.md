@@ -1,3 +1,9 @@
+## 0.2.10 (2025-05-28)
+
+### Fix
+
+- simplifying the materialization steps and the metadata status
+
 ## 0.2.9 (2025-05-27)
 
 ### Fix
