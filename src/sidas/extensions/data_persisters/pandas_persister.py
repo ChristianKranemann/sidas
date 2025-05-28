@@ -11,7 +11,7 @@ from ...core import (
     DataPersister,
 )
 from ..resources.databases import DatabaseResource
-from ..resources.file import FileResource
+from ..resources.folder import FolderResource
 
 if TYPE_CHECKING:
     from polars._typing import SchemaDict  # type:ignore
@@ -20,8 +20,8 @@ PandasPersistable = DataPersistableProtocol[pd.DataFrame]
 
 
 @dataclass
-class PandasPersisterFileResource:
-    file: FileResource
+class PandasPersisterFolderResource:
+    folder: FolderResource
     format: Literal["csv", "parquet", "json", "ndjson"] = "ndjson"
 
     def save(self, asset: PandasPersistable) -> None:
@@ -29,19 +29,19 @@ class PandasPersisterFileResource:
         data = pl.from_dataframe(asset.data)
         match self.format:
             case "csv":
-                with self.file.open(path, "w") as f:
+                with self.folder.open(path, "w") as f:
                     data.write_csv(f, separator=";")
 
             case "parquet":
-                with self.file.open(path, "wb") as f:
+                with self.folder.open(path, "wb") as f:
                     data.write_parquet(f)
 
             case "json":
-                with self.file.open(path, "w") as f:
+                with self.folder.open(path, "w") as f:
                     data.write_json(f)
 
             case "ndjson":
-                with self.file.open(path, "w") as f:
+                with self.folder.open(path, "w") as f:
                     data.write_ndjson(f)
 
     def load(self, asset: PandasPersistable) -> None:
@@ -51,23 +51,23 @@ class PandasPersisterFileResource:
 
         match self.format:
             case "csv":
-                with self.file.open(path, "r") as f:
+                with self.folder.open(path, "r") as f:
                     data = pl.read_csv(
                         f, separator=";", schema=schema, truncate_ragged_lines=True
                     )
 
             case "parquet":
-                with self.file.open(path, "rb") as f:
+                with self.folder.open(path, "rb") as f:
                     data = pl.read_parquet(
                         f, schema=schema, allow_missing_columns=True, columns=columns
                     )
 
             case "json":
-                with self.file.open(path, "r") as f:
+                with self.folder.open(path, "r") as f:
                     data = pl.read_json(f, schema=schema)
 
             case "ndjson":
-                with self.file.open(path, "r") as f:
+                with self.folder.open(path, "r") as f:
                     data = pl.read_ndjson(f, schema=schema)
 
         asset.data = data.to_pandas()
@@ -124,8 +124,8 @@ class PandasPersisterDBResource:
 
 
 # @dataclass
-# class PandasPersisterFileResource:
-#     file: FileResource
+# class PandasPersisterFolderResource:
+#     file: FolderResource
 #     format: Literal["csv", "parquet", "json", "ndjson"] = "ndjson"
 
 #     def save(self, asset: PandasPersistable) -> None:
@@ -133,19 +133,19 @@ class PandasPersisterDBResource:
 
 #         match self.format:
 #             case "csv":
-#                 with self.file.open(path, "w") as f:
+#                 with self.folder.open(path, "w") as f:
 #                     asset.data.to_csv(f, sep=";")
 
 #             case "parquet":
-#                 with self.file.open(path, "wb") as f:
+#                 with self.folder.open(path, "wb") as f:
 #                     asset.data.to_parquet(f)
 
 #             case "json":
-#                 with self.file.open(path, "w") as f:
+#                 with self.folder.open(path, "w") as f:
 #                     asset.data.to_json(f, orient="records")
 
 #             case "ndjson":
-#                 with self.file.open(path, "w") as f:
+#                 with self.folder.open(path, "w") as f:
 #                     asset.data.to_json(f, orient="records", lines=True)
 
 #     def load(self, asset: PandasPersistable) -> None:
@@ -153,19 +153,19 @@ class PandasPersisterDBResource:
 
 #         match self.format:
 #             case "csv":
-#                 with self.file.open(path, "r") as f:
+#                 with self.folder.open(path, "r") as f:
 #                     asset.data = pd.read_csv(f, sep=";")
 
 #             case "parquet":
-#                 with self.file.open(path, "rb") as f:
+#                 with self.folder.open(path, "rb") as f:
 #                     asset.data = pd.read_parquet(f)
 
 #             case "json":
-#                 with self.file.open(path, "r") as f:
+#                 with self.folder.open(path, "r") as f:
 #                     asset.data = pd.read_json(f, orient="records")
 
 #             case "ndjson":
-#                 with self.file.open(path, "r") as f:
+#                 with self.folder.open(path, "r") as f:
 #                     asset.data = pd.read_json(f, orient="records", lines=True)
 
 
@@ -192,7 +192,7 @@ class PandasPersisterDBResource:
 #             asset.data = pd.read_sql_table(name, con)
 
 
-PandasPersisterResource = PandasPersisterFileResource | PandasPersisterDBResource
+PandasPersisterResource = PandasPersisterFolderResource | PandasPersisterDBResource
 
 
 class PandasPersister(DataPersister):

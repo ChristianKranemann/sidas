@@ -1,37 +1,37 @@
 from .dataclass_persister import (
     DataclassPersister,
     DataclassPersisterDBResource,
-    DataclassPersisterFileResource,
+    DataclassPersisterFolderResource,
 )
 from .duckdb_persister import (
     DuckDbPersister,
     DuckDbPersisterDBResource,
-    DuckDbPersisterFileResource,
+    DuckDbPersisterFolderResource,
 )
 from .memory_persister import InMemoryDataPersister
 from .pandas_persister import (
     PandasPersister,
     PandasPersisterDBResource,
-    PandasPersisterFileResource,
+    PandasPersisterFolderResource,
 )
 from .polars_persister import (
     PolarsPersister,
     PolarsPersisterDBResource,
-    PolarsPersisterFileResource,
+    PolarsPersisterFolderResource,
 )
 
 __all__ = [
     "DataclassPersister",
     "DataclassPersisterDBResource",
-    "DataclassPersisterFileResource",
+    "DataclassPersisterFolderResource",
     "DuckDbPersister",
-    "DuckDbPersisterFileResource",
+    "DuckDbPersisterFolderResource",
     "DuckDbPersisterDBResource",
     "PandasPersister",
     "PandasPersisterDBResource",
-    "PandasPersisterFileResource",
+    "PandasPersisterFolderResource",
     "PolarsPersister",
     "PolarsPersisterDBResource",
-    "PolarsPersisterFileResource",
+    "PolarsPersisterFolderResource",
     "InMemoryDataPersister",
 ]

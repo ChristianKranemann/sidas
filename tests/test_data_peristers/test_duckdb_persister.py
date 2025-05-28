@@ -12,10 +12,10 @@ from sidas.extensions.assets import SimpleAsset
 from sidas.extensions.data_persisters.duckdb_persister import (
     DuckDbPersister,
     DuckDbPersisterDBResource,
-    DuckDbPersisterFileResource,
+    DuckDbPersisterFolderResource,
 )
 from sidas.extensions.resources.databases import SqliteResource
-from sidas.extensions.resources.file import LocalFile
+from sidas.extensions.resources.folder import LocalFolder
 
 NO_SCHEMA = None
 MATCHING_SCHEMA: SchemaDict = {"a": Int64}
@@ -24,32 +24,32 @@ EXTENDING_SCHEMA: SchemaDict = {"a": Int64, "b": String}
 
 @pytest.fixture()
 def csv_persister(tmp_path: Path) -> DuckDbPersister:
-    file = LocalFile(tmp_path)
-    resource = DuckDbPersisterFileResource(file, "csv")
+    folder = LocalFolder(tmp_path)
+    resource = DuckDbPersisterFolderResource(folder, "csv")
     persister = DuckDbPersister(resource)
     return persister
 
 
 @pytest.fixture()
 def parquet_persister(tmp_path: Path) -> DuckDbPersister:
-    file = LocalFile(tmp_path)
-    resource = DuckDbPersisterFileResource(file, "parquet")
+    folder = LocalFolder(tmp_path)
+    resource = DuckDbPersisterFolderResource(folder, "parquet")
     persister = DuckDbPersister(resource)
     return persister
 
 
 @pytest.fixture()
 def json_persister(tmp_path: Path) -> DuckDbPersister:
-    file = LocalFile(tmp_path)
-    resource = DuckDbPersisterFileResource(file, "json")
+    folder = LocalFolder(tmp_path)
+    resource = DuckDbPersisterFolderResource(folder, "json")
     persister = DuckDbPersister(resource)
     return persister
 
 
 @pytest.fixture()
 def ndjson_persister(tmp_path: Path) -> DuckDbPersister:
-    file = LocalFile(tmp_path)
-    resource = DuckDbPersisterFileResource(file, "ndjson")
+    folder = LocalFolder(tmp_path)
+    resource = DuckDbPersisterFolderResource(folder, "ndjson")
     persister = DuckDbPersister(resource)
     return persister
 

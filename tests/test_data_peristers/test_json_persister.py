@@ -10,10 +10,10 @@ from sidas.extensions.assets import SimpleAsset
 from sidas.extensions.data_persisters.json_persister import (
     JsonPersister,
     JsonPersisterDBResource,
-    JsonPersisterFileResource,
+    JsonPersisterFolderResource,
 )
 from sidas.extensions.resources.databases import SqliteResource
-from sidas.extensions.resources.file import LocalFile
+from sidas.extensions.resources.folder import LocalFolder
 
 NO_SCHEMA = None
 MATCHING_SCHEMA: SchemaDict = {"a": Int32}
@@ -22,32 +22,32 @@ EXTENDING_SCHEMA: SchemaDict = {"a": Int32, "b": String}
 
 @pytest.fixture()
 def csv_persister(tmp_path: Path) -> JsonPersister:
-    file = LocalFile(tmp_path)
-    resource = JsonPersisterFileResource(file, "csv")
+    folder = LocalFolder(tmp_path)
+    resource = JsonPersisterFolderResource(folder, "csv")
     persister = JsonPersister(resource)
     return persister
 
 
 @pytest.fixture()
 def parquet_persister(tmp_path: Path) -> JsonPersister:
-    file = LocalFile(tmp_path)
-    resource = JsonPersisterFileResource(file, "parquet")
+    folder = LocalFolder(tmp_path)
+    resource = JsonPersisterFolderResource(folder, "parquet")
     persister = JsonPersister(resource)
     return persister
 
 
 @pytest.fixture()
 def json_persister(tmp_path: Path) -> JsonPersister:
-    file = LocalFile(tmp_path)
-    resource = JsonPersisterFileResource(file, "json")
+    folder = LocalFolder(tmp_path)
+    resource = JsonPersisterFolderResource(folder, "json")
     persister = JsonPersister(resource)
     return persister
 
 
 @pytest.fixture()
 def ndjson_persister(tmp_path: Path) -> JsonPersister:
-    file = LocalFile(tmp_path)
-    resource = JsonPersisterFileResource(file, "ndjson")
+    folder = LocalFolder(tmp_path)
+    resource = JsonPersisterFolderResource(folder, "ndjson")
     persister = JsonPersister(resource)
     return persister
 

@@ -11,7 +11,7 @@ from ...core import (
     DataPersister,
 )
 from ..resources.databases import DatabaseResource
-from ..resources.file import FileResource
+from ..resources.folder import FolderResource
 
 if TYPE_CHECKING:
     from polars._typing import SchemaDict  # type:ignore
@@ -20,8 +20,8 @@ DataclassPersistable = DataPersistableProtocol[list[Any]]
 
 
 @dataclass
-class DataclassPersisterFileResource:
-    file: FileResource
+class DataclassPersisterFolderResource:
+    folder: FolderResource
     file_format: Literal["csv", "parquet", "json", "ndjson"] = "ndjson"
     strict: bool = False
 
@@ -32,19 +32,19 @@ class DataclassPersisterFileResource:
 
         match self.file_format:
             case "csv":
-                with self.file.open(path, "w") as f:
+                with self.folder.open(path, "w") as f:
                     data.write_csv(f, separator=";")
 
             case "parquet":
-                with self.file.open(path, "wb") as f:
+                with self.folder.open(path, "wb") as f:
                     data.write_parquet(f)
 
             case "json":
-                with self.file.open(path, "w") as f:
+                with self.folder.open(path, "w") as f:
                     data.write_json(f)
 
             case "ndjson":
-                with self.file.open(path, "w") as f:
+                with self.folder.open(path, "w") as f:
                     data.write_ndjson(f)
 
     def load(self, asset: DataclassPersistable) -> None:
@@ -53,19 +53,19 @@ class DataclassPersisterFileResource:
 
         match self.file_format:
             case "csv":
-                with self.file.open(path, "r") as f:
+                with self.folder.open(path, "r") as f:
                     data = pl.read_csv(f, separator=";", schema=schema)
 
             case "parquet":
-                with self.file.open(path, "rb") as f:
+                with self.folder.open(path, "rb") as f:
                     data = pl.read_parquet(f, schema=schema)
 
             case "json":
-                with self.file.open(path, "r") as f:
+                with self.folder.open(path, "r") as f:
                     data = pl.read_json(f, schema=schema)
 
             case "ndjson":
-                with self.file.open(path, "r") as f:
+                with self.folder.open(path, "r") as f:
                     data = pl.read_ndjson(f, schema=schema)
 
         asset_type = get_args(asset.data_type())[0]
@@ -113,7 +113,7 @@ class DataclassPersisterDBResource:
 
 
 DataclassPersisterResource = (
-    DataclassPersisterFileResource | DataclassPersisterDBResource
+    DataclassPersisterFolderResource | DataclassPersisterDBResource
 )
 
 

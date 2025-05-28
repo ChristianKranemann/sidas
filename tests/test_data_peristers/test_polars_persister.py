@@ -11,10 +11,10 @@ from sidas.extensions.assets import SimpleAsset
 from sidas.extensions.data_persisters.polars_persister import (
     PolarsPersister,
     PolarsPersisterDBResource,
-    PolarsPersisterFileResource,
+    PolarsPersisterFolderResource,
 )
 from sidas.extensions.resources.databases import SqliteResource
-from sidas.extensions.resources.file import LocalFile
+from sidas.extensions.resources.folder import LocalFolder
 
 NO_SCHEMA = None
 MATCHING_SCHEMA: SchemaDict = {"a": Int64}
@@ -23,32 +23,32 @@ EXTENDING_SCHEMA: SchemaDict = {"a": Int64, "b": String}
 
 @pytest.fixture()
 def csv_persister(tmp_path: Path) -> PolarsPersister:
-    file = LocalFile(tmp_path)
-    resource = PolarsPersisterFileResource(file, "csv")
+    folder = LocalFolder(tmp_path)
+    resource = PolarsPersisterFolderResource(folder, "csv")
     persister = PolarsPersister(resource)
     return persister
 
 
 @pytest.fixture()
 def parquet_persister(tmp_path: Path) -> PolarsPersister:
-    file = LocalFile(tmp_path)
-    resource = PolarsPersisterFileResource(file, "parquet")
+    folder = LocalFolder(tmp_path)
+    resource = PolarsPersisterFolderResource(folder, "parquet")
     persister = PolarsPersister(resource)
     return persister
 
 
 @pytest.fixture()
 def json_persister(tmp_path: Path) -> PolarsPersister:
-    file = LocalFile(tmp_path)
-    resource = PolarsPersisterFileResource(file, "json")
+    folder = LocalFolder(tmp_path)
+    resource = PolarsPersisterFolderResource(folder, "json")
     persister = PolarsPersister(resource)
     return persister
 
 
 @pytest.fixture()
 def ndjson_persister(tmp_path: Path) -> PolarsPersister:
-    file = LocalFile(tmp_path)
-    resource = PolarsPersisterFileResource(file, "ndjson")
+    folder = LocalFolder(tmp_path)
+    resource = PolarsPersisterFolderResource(folder, "ndjson")
     persister = PolarsPersister(resource)
     return persister
 

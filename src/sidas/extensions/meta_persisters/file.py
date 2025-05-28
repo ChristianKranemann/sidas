@@ -1,11 +1,11 @@
 from typing import Any, Type
 
 from ...core import MetaDataFailedToRetrieve, MetaPersistable, MetaPersister
-from ..resources.file import FileResource
+from ..resources.folder import FolderResource
 
 
 class FileMetaPersister(MetaPersister):
-    def __init__(self, folder: FileResource) -> None:
+    def __init__(self, folder: FolderResource) -> None:
         self.folder = folder
 
     def register(
