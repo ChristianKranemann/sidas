@@ -9,7 +9,6 @@ class SimpleCoordinator(Coordinator):
         super().__init__(cron_expression=cron_expression)
 
     def trigger_materialization(self, asset: DefaultAsset) -> None:
-        asset.in_trigger_materialization()
         self.materialize(asset.asset_id())
 
 

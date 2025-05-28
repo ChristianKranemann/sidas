@@ -202,11 +202,6 @@ class BaseAsset(
             bool: True if the asset can be materialized, False otherwise
         """
 
-    def in_trigger_materialization(self) -> None:
-        self.load_meta()
-        self.meta.update_status(AssetStatus.TRANSFORMING_KICKOFF)
-        self.save_meta()
-
     def before_materialize(self) -> None:
         """
         Prepare the asset for materialization.
@@ -214,51 +209,34 @@ class BaseAsset(
         pass
 
     def materialize(self) -> None:
-        self.load_meta()
-        self.meta.update_status(AssetStatus.TRANSFORMING)
-        self.save_meta()
-
         try:
             self.data = self.transformation(*self.transformation_args)
-            self.meta.update_status(AssetStatus.TRANSFORMED)
-            self.save_meta()
         except Exception as e:
             msg = f"failed to transform asset {self.asset_id()}: {str(e)}\n{traceback.format_exc()}"
             logging.exception(msg)
             self.meta.update_log(msg)
-            self.meta.update_status(AssetStatus.TRANSFORMING_FAILED)
+            self.meta.update_status(AssetStatus.MATERIALIZING_FAILED)
             self.save_meta()
             return
 
-        self.meta.update_status(AssetStatus.PERSISTING)
-        self.save_meta()
-
         try:
             self.save_data()
-            self.meta.update_status(AssetStatus.PERSISTED)
-            self.save_meta()
         except Exception as e:
             msg = f"failed to persist asset {self.asset_id()}: {str(e)}\n{traceback.format_exc()}"
             logging.exception(msg)
-
             self.meta.update_log(msg)
-            self.meta.update_status(AssetStatus.PERSISTING_FAILED)
+            self.meta.update_status(AssetStatus.MATERIALIZING_FAILED)
             self.save_meta()
+            return
+
+        self.meta.update_status(AssetStatus.MATERIALIZED)
+        self.save_meta()
 
     def after_materialize(self) -> None:
         """
         Finalize the asset after materialization.
         """
         pass
-
-    def run_materialize_steps(self) -> None:
-        """
-        Helper method to run the materialization steps in order. Usefull for testing
-        or debugging.
-        """
-        self.before_materialize()
-        self.materialize()
-        self.after_materialize()
 
 
 # Type aliases for convenience

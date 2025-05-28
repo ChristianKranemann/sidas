@@ -49,23 +49,18 @@ class AssetStatus(StrEnum):
         TRANSFORMING: Asset is currently executing its transformation
         TRANSFORMING_FAILED: Asset transformation failed with an error
         TRANSFORMED: Asset transformation has completed successfully
-        PERSISTING: Asset is in the process of being saved
-        PERSISTING_FAILED: Asset persistence failed with an error
-        PERSISTED: Asset has been successfully saved
+        MATERIALIZING: Asset is in the process of being saved
+        MATERIALIZING_FAILED: Asset persistence failed with an error
+        MATERIALIZED: Asset has been successfully saved
     """
 
     INITIALIZING = "INITIALIZING"
     INITIALIZING_FAILED = "INITIALIZING_FAILED"
     INITIALIZED = "INITIALIZED"
 
-    TRANSFORMING_KICKOFF = "TRANSFORMING_KICKOFF"
-    TRANSFORMING = "TRANSFORMING"
-    TRANSFORMING_FAILED = "TRANSFORMING_FAILED"
-    TRANSFORMED = "TRANSFORMED"
-
-    PERSISTING = "PERSISTING"
-    PERSISTING_FAILED = "PERSISTING_FAILED"
-    PERSISTED = "PERSISTED"
+    MATERIALIZING = "MATERIALIZING"
+    MATERIALIZING_FAILED = "MATERIALIZING_FAILED"
+    MATERIALIZED = "MATERIALIZED"
 
 
 class AssetMetaData(MetaData):
@@ -80,21 +75,16 @@ class AssetMetaData(MetaData):
     Attributes:
         status: Current status of the asset
         initialized_at: Timestamp when the asset was created
-        transforming_started_at: Timestamp when transformation started (or None)
-        transforming_stopped_at: Timestamp when transformation ended (or None)
-        persisting_started_at: Timestamp when persistence started (or None)
-        persisting_stopped_at: Timestamp when persistence ended (or None)
+        materializing_started_at: Timestamp when persistence started (or None)
+        materializing_stopped_at: Timestamp when persistence ended (or None)
         updated_at: Timestamp of the last status update
     """
 
     status: AssetStatus = AssetStatus.INITIALIZING
     initializing_started_at: datetime = Field(default_factory=datetime.now)
     initializing_stopped_at: datetime | None = None
-    transforming_kickoff_at: datetime | None = None
-    transforming_started_at: datetime | None = None
-    transforming_stopped_at: datetime | None = None
-    persisting_started_at: datetime | None = None
-    persisting_stopped_at: datetime | None = None
+    materializing_started_at: datetime | None = None
+    materializing_stopped_at: datetime | None = None
     updated_at: datetime = Field(default_factory=datetime.now)
     log: list[str] = Field(default_factory=list)
 
@@ -121,36 +111,27 @@ class AssetMetaData(MetaData):
                 self.initializing_stopped_at = timestamp
             case AssetStatus.INITIALIZED:
                 self.initializing_stopped_at = timestamp
-            case AssetStatus.TRANSFORMING_KICKOFF:
-                self.transforming_kickoff_at = timestamp
-            case AssetStatus.TRANSFORMING:
-                self.transforming_started_at = timestamp
-            case AssetStatus.TRANSFORMING_FAILED:
-                self.transforming_stopped_at = timestamp
-            case AssetStatus.TRANSFORMED:
-                self.transforming_stopped_at = timestamp
-            case AssetStatus.PERSISTING:
-                self.persisting_started_at = timestamp
-            case AssetStatus.PERSISTING_FAILED:
-                self.persisting_stopped_at = timestamp
-            case AssetStatus.PERSISTED:
-                self.persisting_stopped_at = timestamp
+            case AssetStatus.MATERIALIZING:
+                self.materializing_started_at = timestamp
+            case AssetStatus.MATERIALIZING_FAILED:
+                self.materializing_stopped_at = timestamp
+            case AssetStatus.MATERIALIZED:
+                self.materializing_stopped_at = timestamp
 
         self.updated_at = timestamp
         return self
 
-    def in_progress(self) -> bool:
+    def blocked(self) -> bool:
         """
-        Check if the asset is currently in progress (either TRANSFORMING or persisting).
+        Check if the asset is currently in blocked (either INITIALIZING, INITIALIZING_FAILED or PERSISTING).
 
         Returns:
             bool: True if the asset is in progress, False otherwise.
         """
         return self.status in (
-            AssetStatus.TRANSFORMING_KICKOFF,
-            AssetStatus.TRANSFORMING,
-            AssetStatus.TRANSFORMED,
-            AssetStatus.PERSISTING,
+            AssetStatus.INITIALIZING,
+            AssetStatus.INITIALIZING_FAILED,
+            AssetStatus.MATERIALIZING,
         )
 
     def has_error(self) -> bool:
@@ -160,14 +141,10 @@ class AssetMetaData(MetaData):
         Returns:
             bool: True if the asset has an error, False otherwise.
         """
-        return self.status in (
-            AssetStatus.INITIALIZING_FAILED,
-            AssetStatus.TRANSFORMING_FAILED,
-            AssetStatus.PERSISTING_FAILED,
-        )
+        return self.status == AssetStatus.MATERIALIZING_FAILED
 
-    def has_persisted(self) -> bool:
-        return self.status in (AssetStatus.PERSISTED)
+    def has_materialized(self) -> bool:
+        return self.status == AssetStatus.MATERIALIZED
 
     def to_json(self) -> str:
         """
@@ -204,9 +181,6 @@ class CoordinatorStatus(StrEnum):
     INITIALIZED = "INITIALIZED"
 
     PROCESSING = "PROCESSING"
-    PROCESSING_FAILED = "PROCESSING_FAILED"
-    PROCESSED = "PROCESSED"
-
     WAITING = "WAITING"
 
     TERMINATING = "TERMINATING"
@@ -251,13 +225,8 @@ class CoordinatorMetaData(MetaData):
 
             case CoordinatorStatus.PROCESSING:
                 self.processing_started_at = timestamp
-            case CoordinatorStatus.PROCESSING_FAILED:
-                self.processing_stopped_at = timestamp
-            case CoordinatorStatus.PROCESSED:
-                self.processing_stopped_at = timestamp
-
             case CoordinatorStatus.WAITING:
-                pass
+                self.processing_stopped_at = timestamp
 
             case CoordinatorStatus.TERMINATING:
                 self.terminating_started_at = timestamp
@@ -278,10 +247,7 @@ class CoordinatorMetaData(MetaData):
         )
 
     def has_error(self) -> bool:
-        return self.status in (
-            CoordinatorStatus.INITIALIZING_FAILED,
-            CoordinatorStatus.PROCESSING_FAILED,
-        )
+        return self.status in (CoordinatorStatus.INITIALIZING_FAILED,)
 
     def terminate(self) -> None:
         self.update_status(CoordinatorStatus.TERMINATING)

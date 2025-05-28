@@ -86,7 +86,7 @@ class TestInMemoryMetaPersisterIntegration:
     def test_integration_save_load(self):
         """Test the save and load methods with an actual asset instance."""
         # Update the metadata with a known status
-        self.test_asset.meta.update_status(AssetStatus.TRANSFORMED)
+        self.test_asset.meta.update_status(AssetStatus.MATERIALIZED)
 
         # Save the metadata
         self.persister.save(self.test_asset)
@@ -102,7 +102,7 @@ class TestInMemoryMetaPersisterIntegration:
         self.persister.load(new_asset)
 
         # Verify the metadata was loaded correctly
-        assert new_asset.meta.status == AssetStatus.TRANSFORMED
+        assert new_asset.meta.status == AssetStatus.MATERIALIZED
 
     def test_integration_update_status(self):
         """Test that status updates are correctly saved and loaded."""
@@ -111,11 +111,11 @@ class TestInMemoryMetaPersisterIntegration:
 
         # Update the status
         old_timestamp = self.test_asset.meta.updated_at
-        self.test_asset.meta.update_status(AssetStatus.TRANSFORMING)
+        self.test_asset.meta.update_status(AssetStatus.MATERIALIZING)
 
         # Verify the timestamp was updated
         assert self.test_asset.meta.updated_at > old_timestamp
-        assert self.test_asset.meta.transforming_started_at is not None
+        assert self.test_asset.meta.materializing_started_at is not None
 
         # Save the updated state
         self.persister.save(self.test_asset)
@@ -125,6 +125,6 @@ class TestInMemoryMetaPersisterIntegration:
         self.persister.load(new_asset)
 
         # Verify the updated status and timestamps
-        assert new_asset.meta.status == AssetStatus.TRANSFORMING
-        assert new_asset.meta.transforming_started_at is not None
+        assert new_asset.meta.status == AssetStatus.MATERIALIZING
+        assert new_asset.meta.materializing_started_at is not None
         assert new_asset.meta.updated_at > old_timestamp

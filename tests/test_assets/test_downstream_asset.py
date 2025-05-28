@@ -198,46 +198,28 @@ def test_can_materialize_initialized(
     assert not downstream_all.can_materialize()
     assert not downstream_any.can_materialize()
 
-    # upstream is in kickoff
-    upstream.meta.update_status(AssetStatus.TRANSFORMING_KICKOFF)
+    # upstream is materializing
+    upstream.meta.update_status(AssetStatus.MATERIALIZING)
     upstream.save_meta()
     assert not downstream_all.can_materialize()
     assert not downstream_any.can_materialize()
 
-    # upstream is transformin
-    upstream.meta.update_status(AssetStatus.TRANSFORMING)
+    # upstream failed to materialize
+    upstream.meta.update_status(AssetStatus.MATERIALIZING_FAILED)
     upstream.save_meta()
     assert not downstream_all.can_materialize()
     assert not downstream_any.can_materialize()
 
-    # upstream failed to transform
-    upstream.meta.update_status(AssetStatus.TRANSFORMING_FAILED)
-    upstream.save_meta()
-    assert not downstream_all.can_materialize()
-    assert not downstream_any.can_materialize()
-
-    # upstream is persisting
-    upstream.meta.update_status(AssetStatus.PERSISTING)
-    upstream.save_meta()
-    assert not downstream_all.can_materialize()
-    assert not downstream_any.can_materialize()
-
-    # upstream failed to persist
-    upstream.meta.update_status(AssetStatus.PERSISTING_FAILED)
-    upstream.save_meta()
-    assert not downstream_all.can_materialize()
-    assert not downstream_any.can_materialize()
-
-    # upstream persisted and downstream has not persisted
-    upstream.meta.update_status(AssetStatus.PERSISTED)
+    # upstream materialized and downstream has not materialized
+    upstream.meta.update_status(AssetStatus.MATERIALIZED)
     upstream.save_meta()
     assert downstream_all.can_materialize()
     assert downstream_any.can_materialize()
 
-    # upstream persisted and downstream has persisted later
-    downstream_all.meta.update_status(AssetStatus.PERSISTED)
+    # upstream materialized and downstream has materialized later
+    downstream_all.meta.update_status(AssetStatus.MATERIALIZED)
     downstream_all.save_meta()
-    downstream_any.meta.update_status(AssetStatus.PERSISTED)
+    downstream_any.meta.update_status(AssetStatus.MATERIALIZED)
     downstream_any.save_meta()
     assert not downstream_all.can_materialize()
     assert not downstream_any.can_materialize()

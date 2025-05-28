@@ -115,40 +115,6 @@ def test_update_status_processing():
     assert meta.initializing_started_at <= meta.processing_started_at
 
 
-def test_update_status_processing_failed():
-    """Test updating status to PROCESSING_FAILED."""
-    meta = CoordinatorMetaData(cron_expression=CRON_EXPRESSION)
-    meta.update_status(CoordinatorStatus.PROCESSING_FAILED)
-
-    assert meta.status == CoordinatorStatus.PROCESSING_FAILED
-    assert meta.initializing_started_at is not None
-    assert meta.initializing_stopped_at is None
-    assert meta.processing_started_at is None
-    assert meta.processing_stopped_at is not None
-    assert meta.terminating_started_at is None
-    assert meta.terminating_stopped_at is None
-
-    assert meta.initializing_started_at <= meta.updated_at
-    assert meta.initializing_started_at <= meta.processing_stopped_at
-
-
-def test_update_status_processed():
-    """Test updating status to PROCESSED."""
-    meta = CoordinatorMetaData(cron_expression=CRON_EXPRESSION)
-    meta.update_status(CoordinatorStatus.PROCESSED)
-
-    assert meta.status == CoordinatorStatus.PROCESSED
-    assert meta.initializing_started_at is not None
-    assert meta.initializing_stopped_at is None
-    assert meta.processing_started_at is None
-    assert meta.processing_stopped_at is not None
-    assert meta.terminating_started_at is None
-    assert meta.terminating_stopped_at is None
-
-    assert meta.initializing_started_at <= meta.updated_at
-    assert meta.initializing_started_at <= meta.processing_stopped_at
-
-
 def test_update_status_waiting():
     """Test updating status to WAITING."""
     meta = CoordinatorMetaData(cron_expression=CRON_EXPRESSION)
@@ -158,7 +124,7 @@ def test_update_status_waiting():
     assert meta.initializing_started_at is not None
     assert meta.initializing_stopped_at is None
     assert meta.processing_started_at is None
-    assert meta.processing_stopped_at is None
+    assert meta.processing_stopped_at is not None
     assert meta.terminating_started_at is None
     assert meta.terminating_stopped_at is None
 
@@ -209,7 +175,6 @@ def test_status_chaining():
         .update_status(CoordinatorStatus.INITIALIZING)
         .update_status(CoordinatorStatus.INITIALIZED)
         .update_status(CoordinatorStatus.PROCESSING)
-        .update_status(CoordinatorStatus.PROCESSED)
         .update_status(CoordinatorStatus.WAITING)
         .update_status(CoordinatorStatus.TERMINATING)
         .update_status(CoordinatorStatus.TERMINATED)
@@ -251,10 +216,7 @@ def test_has_error():
 
     for value in CoordinatorStatus:
         meta.update_status(value)
-        if value in (
-            CoordinatorStatus.INITIALIZING_FAILED,
-            CoordinatorStatus.PROCESSING_FAILED,
-        ):
+        if value in (CoordinatorStatus.INITIALIZING_FAILED,):
             assert meta.has_error()
         else:
             assert not meta.has_error()

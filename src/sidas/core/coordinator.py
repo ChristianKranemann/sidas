@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
+import traceback
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Type
@@ -13,7 +14,7 @@ from .exceptions import (
     MetaDataFailedToRetrieve,
 )
 from .loader import load_assets
-from .meta import CoordinatorMetaData, CoordinatorStatus
+from .meta import AssetStatus, CoordinatorMetaData, CoordinatorStatus
 
 
 class Coordinator(ABC):
@@ -89,43 +90,73 @@ class Coordinator(ABC):
         This method should be implemented by subclasses.
         """
 
-    def process_assets(self) -> CoordinatorStatus:
-        self.load_meta()
-        self.meta.update_status(CoordinatorStatus.PROCESSING)
-        self.save_meta()
+    def process(self, asset: DefaultAsset) -> None:
+        logging.info("processing asset %s", asset.asset_id())
 
+        # Check if we can materialize. If there is an error, log it and continue
+        can_materialize = False
         try:
-            for asset in self.assets:
-                logging.info("checking asset %s", asset.asset_id())
-
-                if not asset.can_materialize():
-                    logging.info("asset %s cant materialize", asset.asset_id())
-                    continue
-
-                logging.info("materializing asset %s", asset.asset_id())
-                self.trigger_materialization(asset)
+            can_materialize = asset.can_materialize()
         except Exception as e:
-            msg = f"Error processing assets: {e}"
-            self.meta.update_status(CoordinatorStatus.PROCESSING_FAILED)
+            msg = f"Exception in before_materialize: {str(e)}\n{traceback.format_exc()}"
+            logging.exception(msg)
             self.meta.update_log(msg)
             self.save_meta()
-            logging.exception(msg)
-            return CoordinatorStatus.PROCESSING_FAILED
 
-        self.meta.update_status(CoordinatorStatus.PROCESSED)
-        self.meta.update_next_schedule()
-        self.save_meta()
-        return CoordinatorStatus.PROCESSED
-
-    def materialize(self, asset_id: AssetId) -> None:
-        self.load_meta()
-        if self.meta.terminating():
+        if not can_materialize:
             return
 
+        # setting the assets status to MATERIALIZING
+        asset.meta.update_status(AssetStatus.MATERIALIZING)
+        asset.save_meta()
+
+        # trigger materialization. If there is an error log it and set the asset status
+        # to MATERIALIZING_FAILED
+        try:
+            self.trigger_materialization(asset)
+        except Exception as e:
+            asset.meta.update_status(AssetStatus.MATERIALIZING_FAILED)
+            asset.save_meta()
+
+            msg = f"Error processing assets: {e}"
+            logging.exception(msg)
+            self.meta.update_log(msg)
+            self.save_meta()
+
+    def materialize(self, asset_id: AssetId) -> None:
         asset = self.asset(asset_id)
-        asset.before_materialize()
-        asset.materialize()
-        asset.after_materialize()
+
+        try:
+            asset.before_materialize()
+        except Exception as e:
+            asset.meta.update_status(AssetStatus.MATERIALIZING_FAILED)
+            asset.save_meta()
+
+            msg = f"Exception in before_materialize: {str(e)}\n{traceback.format_exc()}"
+            logging.exception(msg)
+            self.meta.update_log(msg)
+            return
+
+        try:
+            asset.materialize()
+        except Exception as e:
+            asset.meta.update_status(AssetStatus.MATERIALIZING_FAILED)
+            asset.save_meta()
+
+            msg = f"Exception in materialize: {str(e)}\n{traceback.format_exc()}"
+            logging.exception(msg)
+            self.meta.update_log(msg)
+            return
+
+        try:
+            asset.after_materialize()
+        except Exception as e:
+            asset.meta.update_status(AssetStatus.MATERIALIZING_FAILED)
+            asset.save_meta()
+
+            msg = f"Exception in after_materialize: {str(e)}\n{traceback.format_exc()}"
+            logging.exception(msg)
+            self.meta.update_log(msg)
 
     def run(self) -> None:
         status = self.initialize()
@@ -133,13 +164,19 @@ class Coordinator(ABC):
             self.meta.terminate()
 
         while not self.meta.terminating():
-            if datetime.now() >= self.meta.next_schedule:
-                self.process_assets()
-                self.meta.update_status(CoordinatorStatus.WAITING)
-                self.save_meta()
+            if datetime.now() < self.meta.next_schedule:
+                time.sleep(10)
+                self.load_meta()
+                continue
 
-            time.sleep(10)
-            self.load_meta()
+            self.meta.update_status(CoordinatorStatus.PROCESSING)
+            self.save_meta()
+
+            for asset in self.assets:
+                self.process(asset)
+
+            self.meta.update_status(CoordinatorStatus.WAITING)
+            self.save_meta()
 
         self.meta.update_status(CoordinatorStatus.TERMINATED)
         self.save_meta()

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Type
 
-from ...core import AssetData, AssetMetaData, AssetStatus, BaseAsset
+from ...core import AssetData, AssetMetaData, BaseAsset
 
 
 class SimpleAssetMetaData(AssetMetaData): ...
@@ -56,16 +56,10 @@ class SimpleAsset(BaseAsset[SimpleAssetMetaData, AssetData]):
 
         self.load_meta()
 
-        if self.meta.status == AssetStatus.INITIALIZING:
+        if self.meta.blocked():
             return False
 
-        if self.meta.status == AssetStatus.INITIALIZING_FAILED:
-            return False
-
-        if self.meta.in_progress():
-            return False
-
-        if self.meta.status == AssetStatus.PERSISTED:
+        if self.meta.has_materialized():
             return False
 
         return True

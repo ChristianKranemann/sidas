@@ -170,23 +170,15 @@ def test_can_materialize(asset: ExampleAsset):
     asset.save_meta()
     assert asset.can_materialize()
 
-    asset.meta.update_status(AssetStatus.TRANSFORMING_KICKOFF)
+    asset.meta.update_status(AssetStatus.MATERIALIZING)
     asset.save_meta()
     assert not asset.can_materialize()
 
-    asset.meta.update_status(AssetStatus.TRANSFORMING)
-    asset.save_meta()
-    assert not asset.can_materialize()
-
-    asset.meta.update_status(AssetStatus.PERSISTING)
-    asset.save_meta()
-    assert not asset.can_materialize()
-
-    asset.meta.update_status(AssetStatus.PERSISTING_FAILED)
+    asset.meta.update_status(AssetStatus.MATERIALIZING_FAILED)
     asset.save_meta()
     assert asset.can_materialize()
 
-    asset.meta.update_status(AssetStatus.PERSISTED)
+    asset.meta.update_status(AssetStatus.MATERIALIZED)
     asset.save_meta()
     assert not asset.can_materialize()
 
@@ -199,7 +191,7 @@ def test_materialize_success(
     asset.initialize()
     asset.materialize()
 
-    assert meta_persister.meta(asset).status == AssetStatus.PERSISTED
+    assert meta_persister.meta(asset).status == AssetStatus.MATERIALIZED
     assert data_persister.data[asset.asset_id()] == TRANSFORMATION_RESULT
 
 
@@ -210,7 +202,7 @@ def test_materialize_failed_transformation(
     asset.transformation = None  # type: ignore
     asset.materialize()
 
-    assert meta_persister.meta(asset).status == AssetStatus.TRANSFORMING_FAILED
+    assert meta_persister.meta(asset).status == AssetStatus.MATERIALIZING_FAILED
 
 
 def test_materialize_failed_persisting(
@@ -219,4 +211,4 @@ def test_materialize_failed_persisting(
 ):
     asset.save_data = None  # type: ignore
     asset.materialize()
-    assert meta_persister.meta(asset).status == AssetStatus.PERSISTING_FAILED
+    assert meta_persister.meta(asset).status == AssetStatus.MATERIALIZING_FAILED

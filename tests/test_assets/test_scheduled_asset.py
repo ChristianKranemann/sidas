@@ -124,39 +124,21 @@ def test_can_materialize_initalized(asset: ExampleAsset):
     assert asset.can_materialize()
 
 
-def test_can_materialize_transformation_kickoff(asset: ExampleAsset):
-    asset.meta.update_status(AssetStatus.TRANSFORMING_KICKOFF)
-    asset.save_meta()
-    assert not asset.can_materialize()
-
-
-def test_can_materialize_transformation_failed_initialy(asset: ExampleAsset):
-    asset.meta.update_status(AssetStatus.TRANSFORMING_FAILED)
-    asset.save_meta()
-    assert asset.can_materialize()
-
-
-def test_can_materialize_transformed(asset: ExampleAsset):
-    asset.meta.update_status(AssetStatus.TRANSFORMED)
-    asset.save_meta()
-    assert not asset.can_materialize()
-
-
 def test_can_materialize_persisting(asset: ExampleAsset):
-    asset.meta.update_status(AssetStatus.PERSISTING)
+    asset.meta.update_status(AssetStatus.MATERIALIZING)
     asset.save_meta()
     assert not asset.can_materialize()
 
 
 def test_can_materialize_persisting_failed(asset: ExampleAsset):
-    asset.meta.update_status(AssetStatus.PERSISTING)
+    asset.meta.update_status(AssetStatus.MATERIALIZING_FAILED)
     asset.save_meta()
-    assert not asset.can_materialize()
+    assert asset.can_materialize()
 
 
 @freeze_time("2023-01-01 10:00:00")
 def test_can_materialize_persisted_before_next(asset: ExampleAsset):
-    asset.meta.update_status(AssetStatus.PERSISTED)
+    asset.meta.update_status(AssetStatus.MATERIALIZED)
     asset.meta.next_schedule = datetime(2023, 1, 1, 10, 10)
     asset.save_meta()
 
@@ -166,7 +148,7 @@ def test_can_materialize_persisted_before_next(asset: ExampleAsset):
 
 @freeze_time("2023-01-01 10:00:00")
 def test_can_materialize_persisted_after_next(asset: ExampleAsset):
-    asset.meta.update_status(AssetStatus.PERSISTED)
+    asset.meta.update_status(AssetStatus.MATERIALIZED)
     asset.meta.next_schedule = datetime(2023, 1, 1, 10, 10)
     asset.save_meta()
 

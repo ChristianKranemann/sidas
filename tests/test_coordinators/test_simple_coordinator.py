@@ -25,16 +25,11 @@ ASSET_DATA = 10
 class ExampleAsset(SimpleAsset[int]):
     def __init__(self) -> None:
         super().__init__()
-        self.in_trigger_materialization_executed = False
         self.before_materialize_executed = False
         self.after_materialize_executed = False
 
     def transformation(self, *args: Any, **kwargs: Any) -> int:
         return ASSET_DATA
-
-    def in_trigger_materialization(self) -> None:
-        self.in_trigger_materialization_executed = True
-        return super().in_trigger_materialization()
 
     def before_materialize(self) -> None:
         self.before_materialize_executed = True
@@ -183,32 +178,10 @@ def test_materialize(
     coordinator.initialize()
     coordinator.materialize(asset.asset_id())
 
-    assert not asset.in_trigger_materialization_executed
     assert asset.before_materialize_executed
     assert asset.after_materialize_executed
     assert data_persister.data[asset.asset_id()] == ASSET_DATA
-    assert meta_persister.meta(asset).status == AssetStatus.PERSISTED
-
-
-def test_materialize_terminating(
-    meta_persister: InMemoryMetaPersister,
-    data_persister: InMemoryDataPersister,
-    coordinator: SimpleCoordinator,
-    asset: ExampleAsset,
-):
-    coordinator.register(asset)
-    coordinator.initialize()
-
-    coordinator.meta.status = CoordinatorStatus.TERMINATING
-    coordinator.save_meta()
-
-    coordinator.materialize(asset.asset_id())
-
-    assert not asset.in_trigger_materialization_executed
-    assert not asset.before_materialize_executed
-    assert not asset.after_materialize_executed
-
-    assert meta_persister.meta(asset).status == AssetStatus.INITIALIZED
+    assert meta_persister.meta(asset).status == AssetStatus.MATERIALIZED
 
 
 def test_trigger_materialization(
@@ -221,11 +194,10 @@ def test_trigger_materialization(
     coordinator.initialize()
     coordinator.trigger_materialization(asset)
 
-    assert asset.in_trigger_materialization_executed
     assert asset.before_materialize_executed
     assert asset.after_materialize_executed
     assert data_persister.data[asset.asset_id()] == ASSET_DATA
-    assert meta_persister.meta(asset).status == AssetStatus.PERSISTED
+    assert meta_persister.meta(asset).status == AssetStatus.MATERIALIZED
 
 
 def test_materialize_terminate():

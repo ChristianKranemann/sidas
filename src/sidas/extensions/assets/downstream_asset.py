@@ -9,7 +9,6 @@ from ...core import (
     AssetData,
     AssetDataFailedToRetrieve,
     AssetMetaData,
-    AssetStatus,
     BaseAsset,
 )
 
@@ -105,7 +104,7 @@ class DownstreamAsset(BaseAsset[DownstreamAssetMetadata, AssetData]):
         self.load_meta()
 
         # skip if asset is materializing
-        if self.meta.in_progress():
+        if self.meta.blocked():
             logging.info("can't materialize: materialization in progress")
             return False
 
@@ -113,26 +112,26 @@ class DownstreamAsset(BaseAsset[DownstreamAssetMetadata, AssetData]):
         upstream_meta = [u.meta for u in upstream]
 
         # skip if any upstream have not persisted
-        upstream_persisted = [u.meta.has_persisted() for u in upstream]
+        upstream_persisted = [u.meta.has_materialized() for u in upstream]
         if not all(upstream_persisted):
             logging.info("can't materialize: some upstream assets are not persisted")
             return False
 
         # if the asset has not materialized, do so now:
-        if self.meta.status != AssetStatus.PERSISTED:
+        if not self.meta.has_materialized():
             logging.info("asset not materialized yet, can materialize")
             return True
 
         # else check if the upstream materialization dates are new enough
         # we know that the materializing_started_at and persisted_at are set
         # because we did the asset status checks obove
-        upstream_persisted_at = [
-            m.persisting_stopped_at
+        upstream_materialized_at = [
+            m.materializing_stopped_at
             for m in upstream_meta
-            if m.persisting_stopped_at is not None
+            if m.materializing_stopped_at is not None
         ]
-        this_last_persisted = cast(datetime, self.meta.persisting_stopped_at)
-        is_newer = [this_last_persisted < t for t in upstream_persisted_at]
+        this_last_persisted = cast(datetime, self.meta.materializing_stopped_at)
+        is_newer = [this_last_persisted < t for t in upstream_materialized_at]
 
         if self.refresh_method == DownstreamAssetRefreshMethod.ALL_UPSTREAM_REFRESHED:
             if not all(is_newer):

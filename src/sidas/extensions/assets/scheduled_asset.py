@@ -6,7 +6,7 @@ from typing import Type
 
 from croniter import croniter
 
-from ...core import AssetData, AssetMetaData, AssetStatus, BaseAsset
+from ...core import AssetData, AssetMetaData, BaseAsset
 from ...core.exceptions import AssetDataFailedToRetrieve
 
 
@@ -67,21 +67,14 @@ class ScheduledAsset(BaseAsset[ScheduledAssetMetadata, AssetData]):
         """
         self.load_meta()
 
-        # skip if asset is is initializing or could not initialize
-        if self.meta.status in (
-            AssetStatus.INITIALIZING,
-            AssetStatus.INITIALIZING_FAILED,
-        ):
-            return False
-
-        # skip if asset is materializing
-        if self.meta.in_progress():
+        # skip if asset is blocked
+        if self.meta.blocked():
             logging.info("can't materialize: materialization in progress")
             return False
 
         # if the asset has not materialized, do so now:
         # update the next schedule
-        if not self.meta.has_persisted():
+        if not self.meta.has_materialized():
             logging.info("asset not materialized yet, can materialize")
             return True
 
@@ -97,7 +90,7 @@ class ScheduledAsset(BaseAsset[ScheduledAssetMetadata, AssetData]):
         If materialization was successfull, update the schedule.
         """
         self.load_meta()
-        if self.meta.has_persisted():
+        if self.meta.has_materialized():
             cron_iterator = croniter(self.cron_expression)
             self.meta.next_schedule = cron_iterator.next(datetime)
             self.save_meta()
