@@ -1,3 +1,9 @@
+## 0.2.12 (2025-05-30)
+
+### Fix
+
+- load metadata in materialize
+
 ## 0.2.11 (2025-05-30)
 
 ### Fix
