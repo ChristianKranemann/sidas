@@ -117,7 +117,7 @@ class S3Bucket(FolderResource):
         self.bucket = bucket
 
     def full_path(self, path: PurePath) -> Path:
-        return Path("s3://", self.bucket, path)
+        return Path(self.bucket, path)
 
     @overload
     @contextmanager
@@ -136,20 +136,19 @@ class S3Bucket(FolderResource):
         self, path: PurePath, mode: FolderResourceMode = "r"
     ) -> Iterator[io.TextIOWrapper | io.FileIO]:
         session = self.account.session()
-
+        uri = f"s3://{self.full_path(path)}"
         yield so.open(
-            self.full_path(path),
+            uri,
             mode,
             transport_params={"client": session.client("s3")},
         )
 
     def exists(self, path: PurePath) -> bool:
         session = self.account.session()
+        uri = f"s3://{self.full_path(path)}"
 
         try:
-            with so.open(
-                self.full_path(path), transport_params={"client": session.client("s3")}
-            ):
+            with so.open(uri, transport_params={"client": session.client("s3")}):
                 return True
         except ValueError:
             return False
