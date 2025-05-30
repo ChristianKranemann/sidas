@@ -123,8 +123,33 @@ class Coordinator(ABC):
             self.meta.update_log(msg)
             self.save_meta()
 
+    def run(self) -> None:
+        status = self.initialize()
+        if status != CoordinatorStatus.INITIALIZED:
+            self.meta.terminate()
+
+        while not self.meta.terminating():
+            if datetime.now() < self.meta.next_schedule:
+                time.sleep(10)
+                self.load_meta()
+                continue
+
+            self.meta.update_status(CoordinatorStatus.PROCESSING)
+            self.save_meta()
+
+            for asset in self.assets:
+                self.process(asset)
+
+            self.meta.update_status(CoordinatorStatus.WAITING)
+            self.save_meta()
+
+        self.meta.update_status(CoordinatorStatus.TERMINATED)
+        self.save_meta()
+        return
+
     def materialize(self, asset_id: AssetId) -> None:
         asset = self.asset(asset_id)
+        asset.load_meta()
 
         try:
             asset.before_materialize()
@@ -157,27 +182,3 @@ class Coordinator(ABC):
             msg = f"Exception in after_materialize: {str(e)}\n{traceback.format_exc()}"
             logging.exception(msg)
             self.meta.update_log(msg)
-
-    def run(self) -> None:
-        status = self.initialize()
-        if status != CoordinatorStatus.INITIALIZED:
-            self.meta.terminate()
-
-        while not self.meta.terminating():
-            if datetime.now() < self.meta.next_schedule:
-                time.sleep(10)
-                self.load_meta()
-                continue
-
-            self.meta.update_status(CoordinatorStatus.PROCESSING)
-            self.save_meta()
-
-            for asset in self.assets:
-                self.process(asset)
-
-            self.meta.update_status(CoordinatorStatus.WAITING)
-            self.save_meta()
-
-        self.meta.update_status(CoordinatorStatus.TERMINATED)
-        self.save_meta()
-        return
