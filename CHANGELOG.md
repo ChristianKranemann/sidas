@@ -1,3 +1,13 @@
+## 0.2.11 (2025-05-30)
+
+### Fix
+
+- fixing missing table bug for duck db persister
+
+### Refactor
+
+- changed ile resource to folder resource and added full_path method
+
 ## 0.2.10 (2025-05-28)
 
 ### Fix
